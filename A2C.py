@@ -218,6 +218,20 @@ def train_a2c(episodes=EPISODES, run_id=1):
     # Save results for the current run with a unique ID
     save_results(run_id, reward_history, urllc_block_history, embb_block_history, urllc_sla_pres, embb_sla_pres)
 
+    # Plot losses
+    plt.figure(figsize=(10, 5))
+    plt.plot(actor_losses, label="Actor Loss", alpha=0.7)
+    plt.plot(critic_losses, label="Critic Loss", alpha=0.7)
+    plt.axhline(0, color='black', linewidth=0.8)
+    plt.title("Actor and Critic Losses Over Time")
+    plt.xlabel("Training Step")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig("a2c_losses_plot.png")
+    plt.show()
+
 # ================================
 # Run Multiple A2C Simulations
 # ================================

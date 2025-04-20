@@ -272,6 +272,9 @@ def train_dqn(episodes=EPISODES, run_id=1):
 
     save_results(run_id, reward_history, urllc_block_history, embb_block_history, urllc_sla_pres, embb_sla_pres)
 
+    # Q-value heatmaps
+   # plot_q_value_heatmaps(policy_net)
+
 # Run multiple training sessions
 for run_id in range(1, 6):  # Run 5 simulations with different IDs
     train_dqn(episodes=EPISODES, run_id=run_id)

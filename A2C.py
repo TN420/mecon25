@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
-import seaborn as sns
 from collections import deque
 
 # ================================
@@ -19,17 +18,17 @@ EMBB_QUOTA = 70
 # Traffic Types
 TRAFFIC_TYPES = ['URLLC', 'eMBB']
 
-# DQN Hyperparameters
+# A2C Hyperparameters
 GAMMA = 0.95
 LR = 0.001
-BATCH_SIZE = 16  # Reduced batch size for faster training
-MEMORY_SIZE = 5000  # Reduced memory size for faster training
+BATCH_SIZE = 16
+MEMORY_SIZE = 5000
 TARGET_UPDATE = 10
-EPISODES = 500
+EPISODES = 300
 STEPS_PER_EPISODE = 50
 EPSILON_START = 0.9
 EPSILON_END = 0.05
-EPSILON_DECAY = 100  # Faster epsilon decay for more exploration early on
+EPSILON_DECAY = 100
 
 # ================================
 # Environment
@@ -50,8 +49,8 @@ class RANEnv:
         return np.array([
             self.urllc_usage / TOTAL_PRBS,
             self.embb_usage / TOTAL_PRBS,
-            1.0,  # Default SLA preservation for URLLC
-            1.0   # Default SLA preservation for eMBB
+            1.0,
+            1.0
         ], dtype=np.float32)
 
     def step(self, action, traffic_type):
@@ -97,37 +96,28 @@ class RANEnv:
         return next_state, reward, done, admitted, blocked, sla_violated, traffic_type
 
 # ================================
-# DQN Network
+# A2C Networks
 # ================================
 
-class DQN(nn.Module):
+class Actor(nn.Module):
     def __init__(self, state_size, action_size):
-        super(DQN, self).__init__()
-        self.fc1 = nn.Linear(state_size, 16)  # Reduced number of neurons
-        self.fc2 = nn.Linear(16, action_size)  # Removed second hidden layer
+        super(Actor, self).__init__()
+        self.fc1 = nn.Linear(state_size, 16)
+        self.fc2 = nn.Linear(16, action_size)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        return torch.softmax(self.fc2(x), dim=-1)
+
+class Critic(nn.Module):
+    def __init__(self, state_size):
+        super(Critic, self).__init__()
+        self.fc1 = nn.Linear(state_size, 16)
+        self.fc2 = nn.Linear(16, 1)
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
         return self.fc2(x)
-
-# ================================
-# Replay Buffer
-# ================================
-
-class ReplayBuffer:
-    def __init__(self, capacity):
-        self.buffer = deque(maxlen=capacity)
-
-    def push(self, state, action, reward, next_state):
-        self.buffer.append((state, action, reward, next_state))
-
-    def sample(self, batch_size):
-        batch = random.sample(self.buffer, batch_size)
-        state, action, reward, next_state = map(np.array, zip(*batch))
-        return state, action, reward, next_state
-
-    def __len__(self):
-        return len(self.buffer)
 
 # ================================
 # Utility Functions
@@ -136,50 +126,18 @@ class ReplayBuffer:
 def smooth(data, window=10):
     return np.convolve(data, np.ones(window)/window, mode='valid')
 
-def plot_q_value_heatmaps(policy_net):
-    usage_levels = np.linspace(0, 1, 50)
-    q_vals_action0 = np.zeros((50, 50))
-    q_vals_action1 = np.zeros((50, 50))
-
-    for i, urllc_norm in enumerate(usage_levels):
-        for j, embb_norm in enumerate(usage_levels):
-            state = torch.tensor([urllc_norm, embb_norm, 1.0, 1.0], dtype=torch.float32).unsqueeze(0)
-            with torch.no_grad():
-                q_values = policy_net(state)
-                q_vals_action0[i, j] = q_values[0, 0].item()
-                q_vals_action1[i, j] = q_values[0, 1].item()
-
-    fig, axs = plt.subplots(1, 2, figsize=(14, 6))
-    sns.heatmap(q_vals_action0, xticklabels=False, yticklabels=False, ax=axs[0], cmap='coolwarm')
-    axs[0].set_title("Q-values for Action 0 (Reject)")
-
-    sns.heatmap(q_vals_action1, xticklabels=False, yticklabels=False, ax=axs[1], cmap='coolwarm')
-    axs[1].set_title("Q-values for Action 1 (Admit)")
-
-    for ax in axs:
-        ax.set_xlabel("eMBB Usage (normalized)")
-        ax.set_ylabel("URLLC Usage (normalized)")
-
-    plt.tight_layout()
-    plt.savefig("q_value_heatmaps.png")
-    plt.show()
-
 # ================================
 # Training Loop
 # ================================
 
-def train_dqn(episodes=EPISODES):
+def train_a2c(episodes=EPISODES):
     env = RANEnv()
     state_size = len(env.reset())
     action_size = 2
 
-    policy_net = DQN(state_size, action_size)
-    target_net = DQN(state_size, action_size)
-    target_net.load_state_dict(policy_net.state_dict())
-    target_net.eval()
-
-    optimizer = optim.Adam(policy_net.parameters(), lr=LR)
-    memory = ReplayBuffer(MEMORY_SIZE)
+    actor = Actor(state_size, action_size)
+    critic = Critic(state_size)
+    optimizer = optim.Adam(list(actor.parameters()) + list(critic.parameters()), lr=LR)
 
     reward_history = []
     urllc_block_history = []
@@ -188,10 +146,12 @@ def train_dqn(episodes=EPISODES):
     embb_sla_pres = []
     urllc_usage_hist = []
     embb_usage_hist = []
+    actor_losses = []
+    critic_losses = []
 
     for episode in range(episodes):
         state = env.reset()
-        total_reward = 0
+        episode_return = 0
         urllc_blocks = 0
         embb_blocks = 0
         urllc_sla_preserved = 0
@@ -206,13 +166,9 @@ def train_dqn(episodes=EPISODES):
             else:
                 embb_total_requests += 1
 
-            epsilon = max(EPSILON_END, EPSILON_START - episode / EPSILON_DECAY)
-            if random.random() < epsilon:
-                action = random.randint(0, 1)
-            else:
-                with torch.no_grad():
-                    q_vals = policy_net(torch.tensor(state).float().unsqueeze(0))
-                    action = q_vals.argmax().item()
+            state_tensor = torch.tensor(state).float().unsqueeze(0)
+            action_probs = actor(state_tensor)
+            action = np.random.choice(action_size, p=action_probs.detach().numpy().squeeze())
 
             next_state, reward, done, admitted, blocked, sla_violated, t_type = env.step(action, traffic_type)
 
@@ -223,27 +179,24 @@ def train_dqn(episodes=EPISODES):
                 if t_type == 'URLLC': urllc_sla_preserved += 1
                 if t_type == 'eMBB': embb_sla_preserved += 1
 
-            memory.push(state, action, reward, next_state)
+            state_value = critic(state_tensor)
+            next_state_value = critic(torch.tensor(next_state).float().unsqueeze(0))
+            advantage = reward + GAMMA * next_state_value - state_value
+
+            actor_loss = -torch.log(action_probs.squeeze(0)[action]) * advantage.detach()
+            critic_loss = advantage.pow(2)
+
+            optimizer.zero_grad()
+            (actor_loss + critic_loss).mean().backward()
+            optimizer.step()
+
+            actor_losses.append(actor_loss.item())
+            critic_losses.append(critic_loss.item())
+
             state = next_state
-            total_reward += reward
+            episode_return += reward
 
-            if len(memory) >= BATCH_SIZE:
-                s, a, r, ns = memory.sample(BATCH_SIZE)
-                s = torch.tensor(s).float()
-                a = torch.tensor(a).long()
-                r = torch.tensor(r).float()
-                ns = torch.tensor(ns).float()
-
-                q_values = policy_net(s).gather(1, a.unsqueeze(1)).squeeze()
-                next_q_values = target_net(ns).max(1)[0].detach()
-                expected_q = r + GAMMA * next_q_values
-
-                loss = nn.MSELoss()(q_values, expected_q)
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-
-        reward_history.append(total_reward)
+        reward_history.append(episode_return)
         urllc_block_history.append(urllc_blocks)
         embb_block_history.append(embb_blocks)
         urllc_sla_pres.append(urllc_sla_preserved / urllc_total_requests if urllc_total_requests > 0 else 0)
@@ -251,16 +204,21 @@ def train_dqn(episodes=EPISODES):
         urllc_usage_hist.append(env.urllc_usage)
         embb_usage_hist.append(env.embb_usage)
 
-        if episode % TARGET_UPDATE == 0:
-            target_net.load_state_dict(policy_net.state_dict())
+        print(f"Episode {episode+1}: Episode Return = {episode_return:.2f}, URLLC SLA Ratio = {urllc_sla_pres[-1]:.2f}, eMBB SLA Ratio = {embb_sla_pres[-1]:.2f}")
 
-        print(f"Episode {episode+1}: Total Reward = {total_reward:.2f}, URLLC SLA Ratio = {urllc_sla_pres[-1]:.2f}, eMBB SLA Ratio = {embb_sla_pres[-1]:.2f}")
+    # Save metrics to a .npz file
+    np.savez("a2c_results.npz",
+             rewards=np.array(reward_history),
+             urllc_blocks=np.array(urllc_block_history),
+             embb_blocks=np.array(embb_block_history),
+             urllc_sla=np.array(urllc_sla_pres),
+             embb_sla=np.array(embb_sla_pres))
 
-    # Plotting
+    # Plot performance
     fig, axs = plt.subplots(3, 2, figsize=(14, 10))
 
     axs[0, 0].plot(smooth(reward_history))
-    axs[0, 0].set_title("Smoothed Total Reward")
+    axs[0, 0].set_title("Smoothed Episode Return")
 
     axs[0, 1].plot(smooth(urllc_block_history), label="URLLC")
     axs[0, 1].plot(smooth(embb_block_history), label="eMBB")
@@ -286,15 +244,26 @@ def train_dqn(episodes=EPISODES):
         ax.grid(True)
 
     plt.tight_layout()
-    plt.savefig("performance_plots.png")
-    plt.show()
+    plt.savefig("a2c_performance_plots.png")
+    plt.close()
 
-    # Q-value heatmaps
-    plot_q_value_heatmaps(policy_net)
+    # Plot losses
+    plt.figure(figsize=(10, 5))
+    plt.plot(actor_losses, label="Actor Loss", alpha=0.7)
+    plt.plot(critic_losses, label="Critic Loss", alpha=0.7)
+    plt.axhline(0, color='black', linewidth=0.8)
+    plt.title("Actor and Critic Losses Over Time")
+    plt.xlabel("Training Step")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig("a2c_losses_plot.png")
+    plt.close()
 
 # ================================
 # Entry Point
 # ================================
 
 if __name__ == "__main__":
-    train_dqn()
+    train_a2c()

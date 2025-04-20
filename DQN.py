@@ -1,5 +1,3 @@
-# DQN.py
-
 import random
 import numpy as np
 import torch
@@ -8,6 +6,7 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import deque
+import time
 
 # ================================
 # Configuration Constants
@@ -167,10 +166,23 @@ def plot_q_value_heatmaps(policy_net):
     plt.show()
 
 # ================================
+# Save Results with Run ID
+# ================================
+
+def save_results(run_id, rewards, urllc_blocks, embb_blocks, urllc_sla, embb_sla):
+    # Save results with a unique run ID to avoid overwriting
+    np.savez(f"dqn_results_run_{run_id}.npz", 
+             rewards=rewards, 
+             urllc_blocks=urllc_blocks, 
+             embb_blocks=embb_blocks, 
+             urllc_sla=urllc_sla, 
+             embb_sla=embb_sla)
+
+# ================================
 # Training Loop
 # ================================
 
-def train_dqn(episodes=EPISODES):
+def train_dqn(episodes=EPISODES, run_id=1):
     env = RANEnv()
     state_size = len(env.reset())
     action_size = 2
@@ -256,55 +268,10 @@ def train_dqn(episodes=EPISODES):
         if episode % TARGET_UPDATE == 0:
             target_net.load_state_dict(policy_net.state_dict())
 
-        print(f"Episode {episode+1}: Total Reward = {total_reward:.2f}, URLLC SLA Ratio = {urllc_sla_pres[-1]:.2f}, eMBB SLA Ratio = {embb_sla_pres[-1]:.2f}")
+        print(f"Episode {episode+1}/{episodes} - Total Reward: {total_reward}")
 
-    # Save metrics to a .npz file
-    np.savez("dqn_results.npz",
-             rewards=np.array(reward_history),
-             urllc_blocks=np.array(urllc_block_history),
-             embb_blocks=np.array(embb_block_history),
-             urllc_sla=np.array(urllc_sla_pres),
-             embb_sla=np.array(embb_sla_pres))
+    save_results(run_id, reward_history, urllc_block_history, embb_block_history, urllc_sla_pres, embb_sla_pres)
 
-    # Plotting
-    fig, axs = plt.subplots(3, 2, figsize=(14, 10))
-
-    axs[0, 0].plot(smooth(reward_history))
-    axs[0, 0].set_title("Smoothed Total Reward")
-
-    axs[0, 1].plot(smooth(urllc_block_history), label="URLLC")
-    axs[0, 1].plot(smooth(embb_block_history), label="eMBB")
-    axs[0, 1].set_title("Smoothed Block Rate")
-    axs[0, 1].legend()
-
-    axs[1, 0].plot(smooth(urllc_sla_pres), label="URLLC")
-    axs[1, 0].plot(smooth(embb_sla_pres), label="eMBB")
-    axs[1, 0].set_ylim(0, 1.05)
-    axs[1, 0].set_title("Smoothed SLA Preservation Ratio")
-    axs[1, 0].legend()
-
-    axs[1, 1].axis('off')
-
-    axs[2, 0].plot(smooth(urllc_usage_hist))
-    axs[2, 0].set_title("Smoothed URLLC PRB Usage")
-
-    axs[2, 1].plot(smooth(embb_usage_hist))
-    axs[2, 1].set_title("Smoothed eMBB PRB Usage")
-
-    for ax in axs.flat:
-        ax.set_xlabel("Episode")
-        ax.grid(True)
-
-    plt.tight_layout()
-    plt.savefig("dqn_performance_plots.png")
-    plt.show()
-
-    # Q-value heatmaps
-    plot_q_value_heatmaps(policy_net)
-
-# ================================
-# Entry Point
-# ================================
-
-if __name__ == "__main__":
-    train_dqn()
+# Run multiple training sessions
+for run_id in range(1, 6):  # Run 5 simulations with different IDs
+    train_dqn(episodes=EPISODES, run_id=run_id)

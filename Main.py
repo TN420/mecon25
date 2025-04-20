@@ -7,6 +7,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import deque
 
+# ================================
+# Configuration Constants
+# ================================
+
 # Environment Constants
 TOTAL_PRBS = 100
 URLLC_QUOTA = 30
@@ -18,11 +22,19 @@ TRAFFIC_TYPES = ['URLLC', 'eMBB']
 # DQN Hyperparameters
 GAMMA = 0.95
 LR = 0.001
-BATCH_SIZE = 32
-MEMORY_SIZE = 10000
+BATCH_SIZE = 16  # Reduced batch size for faster training
+MEMORY_SIZE = 5000  # Reduced memory size for faster training
 TARGET_UPDATE = 10
+EPISODES = 500
+STEPS_PER_EPISODE = 50
+EPSILON_START = 0.9
+EPSILON_END = 0.05
+EPSILON_DECAY = 100  # Faster epsilon decay for more exploration early on
 
+# ================================
 # Environment
+# ================================
+
 class RANEnv:
     def __init__(self):
         self.reset()
@@ -35,7 +47,6 @@ class RANEnv:
         return self.state
 
     def _get_state(self):
-        # State now includes SLA preservation ratios
         return np.array([
             self.urllc_usage / TOTAL_PRBS,
             self.embb_usage / TOTAL_PRBS,
@@ -46,7 +57,6 @@ class RANEnv:
     def step(self, action, traffic_type):
         reward = 0
         done = False
-
         admitted = False
         blocked = False
         sla_violated = False
@@ -86,20 +96,24 @@ class RANEnv:
         next_state = self._get_state()
         return next_state, reward, done, admitted, blocked, sla_violated, traffic_type
 
+# ================================
 # DQN Network
+# ================================
+
 class DQN(nn.Module):
     def __init__(self, state_size, action_size):
         super(DQN, self).__init__()
-        self.fc1 = nn.Linear(state_size, 64)
-        self.fc2 = nn.Linear(64, 64)
-        self.fc3 = nn.Linear(64, action_size)
+        self.fc1 = nn.Linear(state_size, 16)  # Reduced number of neurons
+        self.fc2 = nn.Linear(16, action_size)  # Removed second hidden layer
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
-        return self.fc3(x)
+        return self.fc2(x)
 
+# ================================
 # Replay Buffer
+# ================================
+
 class ReplayBuffer:
     def __init__(self, capacity):
         self.buffer = deque(maxlen=capacity)
@@ -115,11 +129,13 @@ class ReplayBuffer:
     def __len__(self):
         return len(self.buffer)
 
-# Moving average smoothing
+# ================================
+# Utility Functions
+# ================================
+
 def smooth(data, window=10):
     return np.convolve(data, np.ones(window)/window, mode='valid')
 
-# Q-value Heatmap Plotting
 def plot_q_value_heatmaps(policy_net):
     usage_levels = np.linspace(0, 1, 50)
     q_vals_action0 = np.zeros((50, 50))
@@ -127,7 +143,6 @@ def plot_q_value_heatmaps(policy_net):
 
     for i, urllc_norm in enumerate(usage_levels):
         for j, embb_norm in enumerate(usage_levels):
-            # Pass 4-dimensional state to match the expected input size
             state = torch.tensor([urllc_norm, embb_norm, 1.0, 1.0], dtype=torch.float32).unsqueeze(0)
             with torch.no_grad():
                 q_values = policy_net(state)
@@ -149,8 +164,11 @@ def plot_q_value_heatmaps(policy_net):
     plt.savefig("q_value_heatmaps.png")
     plt.show()
 
+# ================================
 # Training Loop
-def train_dqn(episodes=200):
+# ================================
+
+def train_dqn(episodes=EPISODES):
     env = RANEnv()
     state_size = len(env.reset())
     action_size = 2
@@ -181,14 +199,14 @@ def train_dqn(episodes=200):
         urllc_total_requests = 0
         embb_total_requests = 0
 
-        for t in range(100):
+        for t in range(STEPS_PER_EPISODE):
             traffic_type = random.choice(TRAFFIC_TYPES)
             if traffic_type == 'URLLC':
                 urllc_total_requests += 1
             else:
                 embb_total_requests += 1
 
-            epsilon = max(0.05, 0.9 - episode / 200)
+            epsilon = max(EPSILON_END, EPSILON_START - episode / EPSILON_DECAY)
             if random.random() < epsilon:
                 action = random.randint(0, 1)
             else:
@@ -271,8 +289,12 @@ def train_dqn(episodes=200):
     plt.savefig("performance_plots.png")
     plt.show()
 
-    # Plot Q-value heatmaps
+    # Q-value heatmaps
     plot_q_value_heatmaps(policy_net)
 
+# ================================
+# Entry Point
+# ================================
+
 if __name__ == "__main__":
-    train_dqn(episodes=1000)
+    train_dqn()

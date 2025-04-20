@@ -245,7 +245,7 @@ def train_a2c(episodes=EPISODES):
 
     plt.tight_layout()
     plt.savefig("a2c_performance_plots.png")
-    plt.close()
+    plt.show()
 
     # Plot losses
     plt.figure(figsize=(10, 5))
@@ -259,7 +259,7 @@ def train_a2c(episodes=EPISODES):
     plt.grid(True)
     plt.tight_layout()
     plt.savefig("a2c_losses_plot.png")
-    plt.close()
+    plt.show()
 
 # ================================
 # Entry Point

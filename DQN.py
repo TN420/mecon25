@@ -1,3 +1,6 @@
+# DQN.py
+
+import os
 import random
 import numpy as np
 import torch
@@ -170,8 +173,12 @@ def plot_q_value_heatmaps(policy_net):
 # ================================
 
 def save_results(run_id, rewards, urllc_blocks, embb_blocks, urllc_sla, embb_sla):
+    # Ensure the results folder exists
+    results_dir = "results"
+    os.makedirs(results_dir, exist_ok=True)
+     
     # Save results with a unique run ID to avoid overwriting
-    np.savez(f"dqn_results_run_{run_id}.npz", 
+    np.savez(os.path.join(results_dir, f"dqn_results_run_{run_id}.npz"), 
              rewards=rewards, 
              urllc_blocks=urllc_blocks, 
              embb_blocks=embb_blocks, 
@@ -276,5 +283,5 @@ def train_dqn(episodes=EPISODES, run_id=1):
    # plot_q_value_heatmaps(policy_net)
 
 # Run multiple training sessions
-for run_id in range(1, 6):  # Run 5 simulations with different IDs
+for run_id in range(1, 101):  # Run 5 simulations with different IDs
     train_dqn(episodes=EPISODES, run_id=run_id)

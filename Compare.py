@@ -10,6 +10,8 @@ import os
 
 NUM_RUNS = 100  # Number of runs you performed
 
+RESULTS_DIR = "/home/w5/pydemo/mecon25/results"
+
 # Define the file pattern for the saved NPZ files
 DQN_FILE_PATTERN = "dqn_results_run_{}.npz"
 A2C_FILE_PATTERN = "a2c_results_run_{}.npz"
@@ -35,7 +37,7 @@ lstm_dqn_embb_sla_all = []  # Added LSTM-DQN list
 
 print("Checking shapes of all metrics across runs...")
 
-max_length = max([len(np.load(DQN_FILE_PATTERN.format(run_id))['urllc_blocks']) 
+max_length = max([len(np.load(os.path.join(RESULTS_DIR, DQN_FILE_PATTERN.format(run_id)))['urllc_blocks']) 
                   for run_id in range(1, NUM_RUNS + 1)])
 
 print(f"Max length across all runs: {max_length}")
@@ -57,9 +59,9 @@ def resize_data(data, target_length):
 
 for run_id in range(1, NUM_RUNS + 1):
     # Load DQN, A2C, and LSTM-DQN results for this run
-    dqn_file = DQN_FILE_PATTERN.format(run_id)
-    a2c_file = A2C_FILE_PATTERN.format(run_id)
-    lstm_dqn_file = LSTMDQN_FILE_PATTERN.format(run_id)
+    dqn_file = os.path.join(RESULTS_DIR, DQN_FILE_PATTERN.format(run_id))
+    a2c_file = os.path.join(RESULTS_DIR, A2C_FILE_PATTERN.format(run_id))
+    lstm_dqn_file = os.path.join(RESULTS_DIR, LSTMDQN_FILE_PATTERN.format(run_id))
     
     if os.path.exists(dqn_file) and os.path.exists(a2c_file) and os.path.exists(lstm_dqn_file):
         dqn_results = np.load(dqn_file)

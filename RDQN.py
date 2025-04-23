@@ -1,4 +1,4 @@
-# DQN.py
+# RDQN.py
 
 import os
 import random
@@ -28,11 +28,11 @@ MEMORY_SIZE = 5000
 TARGET_UPDATE = 10
 EPISODES = 300
 STEPS_PER_EPISODE = 50
-EPSILON_START = 0.9
+EPSILON_START = 0.9  # Unused now (NoisyNet)
 EPSILON_END = 0.05
 EPSILON_DECAY = 100
-ALPHA = 0.6  # prioritization exponent
-BETA_START = 0.4  # importance-sampling exponent
+ALPHA = 0.6
+BETA_START = 0.4
 
 # ================================
 # Environment
@@ -97,18 +97,73 @@ class RANEnv:
         return next_state, reward, done, admitted, blocked, sla_violated, traffic_type
 
 # ================================
-# DQN Network
+# Rainbow DQN Network
 # ================================
 
-class DQN(nn.Module):
+class NoisyLinear(nn.Module):
+    def __init__(self, in_features, out_features, std_init=0.5):
+        super(NoisyLinear, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.std_init = std_init
+
+        self.weight_mu = nn.Parameter(torch.FloatTensor(out_features, in_features))
+        self.weight_sigma = nn.Parameter(torch.FloatTensor(out_features, in_features))
+        self.register_buffer("weight_epsilon", torch.FloatTensor(out_features, in_features))
+
+        self.bias_mu = nn.Parameter(torch.FloatTensor(out_features))
+        self.bias_sigma = nn.Parameter(torch.FloatTensor(out_features))
+        self.register_buffer("bias_epsilon", torch.FloatTensor(out_features))
+
+        self.reset_parameters()
+        self.reset_noise()
+
+    def reset_parameters(self):
+        mu_range = 1 / np.sqrt(self.in_features)
+        self.weight_mu.data.uniform_(-mu_range, mu_range)
+        self.weight_sigma.data.fill_(self.std_init / np.sqrt(self.in_features))
+
+        self.bias_mu.data.uniform_(-mu_range, mu_range)
+        self.bias_sigma.data.fill_(self.std_init / np.sqrt(self.out_features))
+
+    def reset_noise(self):
+        self.weight_epsilon.normal_()
+        self.bias_epsilon.normal_()
+
+    def forward(self, x):
+        if self.training:
+            weight = self.weight_mu + self.weight_sigma * self.weight_epsilon
+            bias = self.bias_mu + self.bias_sigma * self.bias_epsilon
+        else:
+            weight = self.weight_mu
+            bias = self.bias_mu
+        return nn.functional.linear(x, weight, bias)
+
+class RainbowDQN(nn.Module):
     def __init__(self, state_size, action_size):
-        super(DQN, self).__init__()
-        self.fc1 = nn.Linear(state_size, 16)
-        self.fc2 = nn.Linear(16, action_size)
+        super(RainbowDQN, self).__init__()
+        self.fc1 = nn.Linear(state_size, 128)
+        self.value_stream = nn.Sequential(
+            NoisyLinear(128, 64),
+            nn.ReLU(),
+            NoisyLinear(64, 1)
+        )
+        self.advantage_stream = nn.Sequential(
+            NoisyLinear(128, 64),
+            nn.ReLU(),
+            NoisyLinear(64, action_size)
+        )
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
-        return self.fc2(x)
+        value = self.value_stream(x)
+        advantage = self.advantage_stream(x)
+        return value + advantage - advantage.mean(dim=1, keepdim=True)
+
+    def reset_noise(self):
+        for module in self.modules():
+            if isinstance(module, NoisyLinear):
+                module.reset_noise()
 
 # ================================
 # Prioritized Replay Buffer
@@ -123,24 +178,17 @@ class PrioritizedReplayBuffer:
 
     def push(self, state, action, reward, next_state):
         max_priority = self.priorities.max() if self.buffer else 1.0
-
         if len(self.buffer) < self.capacity:
             self.buffer.append((state, action, reward, next_state))
         else:
             self.buffer[self.pos] = (state, action, reward, next_state)
-
         self.priorities[self.pos] = max_priority
         self.pos = (self.pos + 1) % self.capacity
 
     def sample(self, batch_size, beta=BETA_START):
-        if len(self.buffer) == self.capacity:
-            priorities = self.priorities
-        else:
-            priorities = self.priorities[:self.pos]
-
+        priorities = self.priorities[:len(self.buffer)]
         probs = priorities ** ALPHA
         probs /= probs.sum()
-
         indices = np.random.choice(len(self.buffer), batch_size, p=probs)
         samples = [self.buffer[idx] for idx in indices]
 
@@ -170,8 +218,8 @@ def train_dqn(episodes=EPISODES, run_id=1):
     state_size = len(env.reset())
     action_size = 2
 
-    policy_net = DQN(state_size, action_size)
-    target_net = DQN(state_size, action_size)
+    policy_net = RainbowDQN(state_size, action_size)
+    target_net = RainbowDQN(state_size, action_size)
     target_net.load_state_dict(policy_net.state_dict())
     target_net.eval()
 
@@ -201,13 +249,9 @@ def train_dqn(episodes=EPISODES, run_id=1):
             urllc_total_requests += traffic_type == 'URLLC'
             embb_total_requests += traffic_type == 'eMBB'
 
-            epsilon = max(EPSILON_END, EPSILON_START - episode / EPSILON_DECAY)
-            if random.random() < epsilon:
-                action = random.randint(0, 1)
-            else:
-                with torch.no_grad():
-                    q_vals = policy_net(torch.tensor(state).float().unsqueeze(0))
-                    action = q_vals.argmax().item()
+            with torch.no_grad():
+                q_vals = policy_net(torch.tensor(state).float().unsqueeze(0))
+                action = q_vals.argmax().item()
 
             next_state, reward, done, admitted, blocked, sla_violated, t_type = env.step(action, traffic_type)
 
@@ -241,6 +285,7 @@ def train_dqn(episodes=EPISODES, run_id=1):
                 loss.backward()
                 optimizer.step()
 
+                policy_net.reset_noise()
                 memory.update_priorities(indices, td_errors.detach().numpy())
 
         reward_history.append(total_reward)
@@ -255,7 +300,7 @@ def train_dqn(episodes=EPISODES, run_id=1):
         print(f"Episode {episode+1}/{episodes} - Total Reward: {total_reward}")
 
     os.makedirs("results", exist_ok=True)
-    np.savez(f"results/dqn_results_run_{run_id}.npz",
+    np.savez(f"results/rdqn_results_run_{run_id}.npz",
              rewards=reward_history,
              urllc_blocks=urllc_block_history,
              embb_blocks=embb_block_history,

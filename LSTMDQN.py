@@ -1,4 +1,4 @@
-# LSTM-DQN.py
+# aLSTM-DQN.py
 
 import os
 import random
@@ -9,31 +9,26 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import deque
-import time
 
 # ================================
 # Configuration Constants
 # ================================
 
-# Environment Constants
 TOTAL_PRBS = 100
 URLLC_QUOTA = 30
 EMBB_QUOTA = 70
-
-# Traffic Types
 TRAFFIC_TYPES = ['URLLC', 'eMBB']
 
-# LSTM Hyperparameters
 GAMMA = 0.95
 LR = 0.001
-BATCH_SIZE = 16  # Reduced batch size for faster training
-MEMORY_SIZE = 5000  # Reduced memory size for faster training
+BATCH_SIZE = 16
+MEMORY_SIZE = 5000
 TARGET_UPDATE = 10
 EPISODES = 300
 STEPS_PER_EPISODE = 50
 EPSILON_START = 0.9
 EPSILON_END = 0.05
-EPSILON_DECAY = 100  # Faster epsilon decay for more exploration early on
+EPSILON_DECAY = 100
 
 # ================================
 # Environment
@@ -54,8 +49,8 @@ class RANEnv:
         return np.array([
             self.urllc_usage / TOTAL_PRBS,
             self.embb_usage / TOTAL_PRBS,
-            1.0,  # Default SLA preservation for URLLC
-            1.0   # Default SLA preservation for eMBB
+            1.0,  # SLA URLLC
+            1.0   # SLA eMBB
         ], dtype=np.float32)
 
     def step(self, action, traffic_type):
@@ -65,10 +60,7 @@ class RANEnv:
         blocked = False
         sla_violated = False
 
-        if traffic_type == 'URLLC':
-            request_prbs = np.random.randint(1, 5)
-        else:
-            request_prbs = np.random.randint(5, 50)
+        request_prbs = np.random.randint(1, 5) if traffic_type == 'URLLC' else np.random.randint(5, 50)
 
         if action == 1:
             if traffic_type == 'URLLC':
@@ -80,7 +72,7 @@ class RANEnv:
                     reward = -1
                     blocked = True
                     sla_violated = True
-            elif traffic_type == 'eMBB':
+            else:
                 if self.embb_usage + request_prbs <= EMBB_QUOTA:
                     self.embb_usage += request_prbs
                     reward = 1
@@ -101,21 +93,24 @@ class RANEnv:
         return next_state, reward, done, admitted, blocked, sla_violated, traffic_type
 
 # ================================
-# LSTM Network
+# Attention-based LSTM-DQN Network
 # ================================
 
-class LSTM_DQN(nn.Module):
+class AttentionLSTM_DQN(nn.Module):
     def __init__(self, state_size, action_size, hidden_size=64):
-        super(LSTM_DQN, self).__init__()
+        super(AttentionLSTM_DQN, self).__init__()
         self.hidden_size = hidden_size
         self.lstm = nn.LSTM(state_size, hidden_size, batch_first=True)
+        self.attention = nn.Linear(hidden_size, 1)
         self.fc = nn.Linear(hidden_size, action_size)
 
     def forward(self, x):
-        # Add sequence dimension (batch_size, sequence_length, input_size)
-        x = x.unsqueeze(1)  # Making it (batch_size, 1, state_size)
+        x = x.unsqueeze(1)  # (batch_size, seq_len=1, state_size)
         lstm_out, _ = self.lstm(x)
-        output = self.fc(lstm_out[:, -1, :])  # We are interested in the last LSTM output
+        attn_scores = torch.tanh(self.attention(lstm_out))
+        attn_weights = torch.softmax(attn_scores, dim=1)
+        context = (attn_weights * lstm_out).sum(dim=1)
+        output = self.fc(context)
         return output
 
 # ================================
@@ -138,68 +133,29 @@ class ReplayBuffer:
         return len(self.buffer)
 
 # ================================
-# Utility Functions
-# ================================
-
-def smooth(data, window=10):
-    return np.convolve(data, np.ones(window)/window, mode='valid')
-
-def plot_q_value_heatmaps(policy_net):
-    usage_levels = np.linspace(0, 1, 50)
-    q_vals_action0 = np.zeros((50, 50))
-    q_vals_action1 = np.zeros((50, 50))
-
-    for i, urllc_norm in enumerate(usage_levels):
-        for j, embb_norm in enumerate(usage_levels):
-            state = torch.tensor([urllc_norm, embb_norm, 1.0, 1.0], dtype=torch.float32).unsqueeze(0)
-            with torch.no_grad():
-                q_values = policy_net(state)
-                q_vals_action0[i, j] = q_values[0, 0].item()
-                q_vals_action1[i, j] = q_values[0, 1].item()
-
-    fig, axs = plt.subplots(1, 2, figsize=(14, 6))
-    sns.heatmap(q_vals_action0, xticklabels=False, yticklabels=False, ax=axs[0], cmap='coolwarm')
-    axs[0].set_title("Q-values for Action 0 (Reject)")
-
-    sns.heatmap(q_vals_action1, xticklabels=False, yticklabels=False, ax=axs[1], cmap='coolwarm')
-    axs[1].set_title("Q-values for Action 1 (Admit)")
-
-    for ax in axs:
-        ax.set_xlabel("eMBB Usage (normalized)")
-        ax.set_ylabel("URLLC Usage (normalized)")
-
-    plt.tight_layout()
-    plt.savefig("q_value_heatmaps.png")
-    plt.show()
-
-# ================================
-# Save Results with Run ID
+# Result Saving
 # ================================
 
 def save_results(run_id, rewards, urllc_blocks, embb_blocks, urllc_sla, embb_sla):
-    # Ensure the results folder exists
-    results_dir = "results"
-    os.makedirs(results_dir, exist_ok=True)
-    
-    # Save results with a unique run ID to avoid overwriting
-    np.savez(os.path.join(results_dir, f"lstm_dqn_results_run_{run_id}.npz"), 
-             rewards=rewards, 
-             urllc_blocks=urllc_blocks, 
-             embb_blocks=embb_blocks, 
-             urllc_sla=urllc_sla, 
+    os.makedirs("results", exist_ok=True)
+    np.savez(f"results/attention_lstm_dqn_results_run_{run_id}.npz",
+             rewards=rewards,
+             urllc_blocks=urllc_blocks,
+             embb_blocks=embb_blocks,
+             urllc_sla=urllc_sla,
              embb_sla=embb_sla)
 
 # ================================
 # Training Loop
 # ================================
 
-def train_lstm_dqn(episodes=EPISODES, run_id=1):
+def train_attention_lstm_dqn(episodes=EPISODES, run_id=1):
     env = RANEnv()
     state_size = len(env.reset())
     action_size = 2
 
-    policy_net = LSTM_DQN(state_size, action_size)
-    target_net = LSTM_DQN(state_size, action_size)
+    policy_net = AttentionLSTM_DQN(state_size, action_size)
+    target_net = AttentionLSTM_DQN(state_size, action_size)
     target_net.load_state_dict(policy_net.state_dict())
     target_net.eval()
 
@@ -211,8 +167,6 @@ def train_lstm_dqn(episodes=EPISODES, run_id=1):
     embb_block_history = []
     urllc_sla_pres = []
     embb_sla_pres = []
-    urllc_usage_hist = []
-    embb_usage_hist = []
 
     for episode in range(episodes):
         state = env.reset()
@@ -271,18 +225,19 @@ def train_lstm_dqn(episodes=EPISODES, run_id=1):
         reward_history.append(total_reward)
         urllc_block_history.append(urllc_blocks)
         embb_block_history.append(embb_blocks)
-        urllc_sla_pres.append(urllc_sla_preserved / urllc_total_requests if urllc_total_requests > 0 else 0)
-        embb_sla_pres.append(embb_sla_preserved / embb_total_requests if embb_total_requests > 0 else 0)
-        urllc_usage_hist.append(env.urllc_usage)
-        embb_usage_hist.append(env.embb_usage)
+        urllc_sla_pres.append(urllc_sla_preserved / urllc_total_requests if urllc_total_requests else 0)
+        embb_sla_pres.append(embb_sla_preserved / embb_total_requests if embb_total_requests else 0)
 
         if episode % TARGET_UPDATE == 0:
             target_net.load_state_dict(policy_net.state_dict())
 
-        print(f"Episode {episode+1}/{episodes} - Total Reward: {total_reward}")
+        print(f"Episode {episode+1}/{episodes} - Total Reward: {total_reward:.2f}")
 
     save_results(run_id, reward_history, urllc_block_history, embb_block_history, urllc_sla_pres, embb_sla_pres)
 
-# Run multiple training sessions
-for run_id in range(1, 101):  # Run 5 simulations with different IDs
-    train_lstm_dqn(episodes=EPISODES, run_id=run_id)
+# ================================
+# Run Training
+# ================================
+
+for run_id in range(1, 101):
+    train_attention_lstm_dqn(episodes=EPISODES, run_id=run_id)

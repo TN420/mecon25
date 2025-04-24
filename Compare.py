@@ -140,6 +140,28 @@ mean_rdqn_embb_sla = np.mean(rdqn_embb_sla_all, axis=0)  # RDQN
 std_rdqn_embb_sla = np.std(rdqn_embb_sla_all, axis=0)  # RDQN
 
 # ================================
+# Baseline Strategy (Random Allocation)
+# ================================
+
+# Generate random baseline data for comparison
+random_urllc_blocks = np.random.randint(0, 5, size=(NUM_RUNS, max_length))
+random_embb_blocks = np.random.randint(0, 50, size=(NUM_RUNS, max_length))
+random_urllc_sla = np.random.uniform(0.7, 1.0, size=(NUM_RUNS, max_length))
+random_embb_sla = np.random.uniform(0.5, 1.0, size=(NUM_RUNS, max_length))
+
+mean_random_urllc_blocks = np.mean(random_urllc_blocks, axis=0)
+std_random_urllc_blocks = np.std(random_urllc_blocks, axis=0)
+
+mean_random_embb_blocks = np.mean(random_embb_blocks, axis=0)
+std_random_embb_blocks = np.std(random_embb_blocks, axis=0)
+
+mean_random_urllc_sla = np.mean(random_urllc_sla, axis=0)
+std_random_urllc_sla = np.std(random_urllc_sla, axis=0)
+
+mean_random_embb_sla = np.mean(random_embb_sla, axis=0)
+std_random_embb_sla = np.std(random_embb_sla, axis=0)
+
+# ================================
 # Smoothing Helper
 # ================================
 
@@ -161,135 +183,131 @@ def adjust_std_and_smooth(mean_data, std_data):
     return smoothed_mean, smoothed_std
 
 # ================================
+# Toggle for Standard Deviation
+# ================================
+
+SHOW_STD_DEV = False  # Set to False to disable standard deviation display
+
+# ================================
 # Plotting
 # ================================
 
 def plot_results():
-    plt.figure(figsize=(12, 12))
+    # Plot URLLC metrics
+    plt.figure(figsize=(12, 6))
 
     # Plot URLLC Blocks
-    plt.subplot(2, 2, 1)
+    plt.subplot(1, 2, 1)
     dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_urllc_blocks, std_dqn_urllc_blocks)
     a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c_urllc_blocks, std_a2c_urllc_blocks)
     rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_urllc_blocks, std_rdqn_urllc_blocks)
-
-    # Clip block rates at 0 to avoid negative values
-    dqn_mean = np.clip(dqn_mean, 0, None)
-    a2c_mean = np.clip(a2c_mean, 0, None)
-    rdqn_mean = np.clip(rdqn_mean, 0, None)
-
-    # Clip the std dev to avoid exceeding bounds
-    dqn_std = np.clip(dqn_std, 0, dqn_mean)
-    a2c_std = np.clip(a2c_std, 0, a2c_mean)
-    rdqn_std = np.clip(rdqn_std, 0, rdqn_mean)
+    random_mean, random_std = adjust_std_and_smooth(mean_random_urllc_blocks, std_random_urllc_blocks)
 
     plt.plot(dqn_mean, label='DQN', color='blue')
-    plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='blue', alpha=0.1)
-
+    if SHOW_STD_DEV:
+        plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='blue', alpha=0.1)
     plt.plot(a2c_mean, label='A2C', color='orange')
-    plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='orange', alpha=0.1)
-
+    if SHOW_STD_DEV:
+        plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='orange', alpha=0.1)
     plt.plot(rdqn_mean, label='RDQN', color='green')
-    plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='green', alpha=0.1)
+    if SHOW_STD_DEV:
+        plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='green', alpha=0.1)
+    plt.plot(random_mean, label='Random', color='red', linestyle='--')
+    if SHOW_STD_DEV:
+        plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='red', alpha=0.1)
 
     plt.title("URLLC Blocks")
     plt.xlabel("Time Steps")
     plt.ylabel("Blocks")
+    plt.yscale("log")  # Use log scale for y-axis
     plt.legend()
 
-    # Plot eMBB Blocks
-    plt.subplot(2, 2, 2)
-    dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_embb_blocks, std_dqn_embb_blocks)
-    a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c_embb_blocks, std_a2c_embb_blocks)
-    rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_embb_blocks, std_rdqn_embb_blocks)
-
-    # Clip block rates at 0 to avoid negative values
-    dqn_mean = np.clip(dqn_mean, 0, None)
-    a2c_mean = np.clip(a2c_mean, 0, None)
-    rdqn_mean = np.clip(rdqn_mean, 0, None)
-
-    # Clip the std dev to avoid exceeding bounds
-    dqn_std = np.clip(dqn_std, 0, dqn_mean)
-    a2c_std = np.clip(a2c_std, 0, a2c_mean)
-    rdqn_std = np.clip(rdqn_std, 0, rdqn_mean)
-
-    plt.plot(dqn_mean, label='DQN', color='blue')
-    plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='blue', alpha=0.1)
-
-    plt.plot(a2c_mean, label='A2C', color='orange')
-    plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='orange', alpha=0.1)
-
-    plt.plot(rdqn_mean, label='RDQN', color='green')
-    plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='green', alpha=0.1)
-
-    plt.title("eMBB Blocks")
-    plt.xlabel("Time Steps")
-    plt.ylabel("Blocks")
-    plt.legend()
-
-    # Plot SLA for URLLC
-    plt.subplot(2, 2, 3)
+    # Plot URLLC SLA
+    plt.subplot(1, 2, 2)
     dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_urllc_sla, std_dqn_urllc_sla)
     a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c_urllc_sla, std_a2c_urllc_sla)
     rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_urllc_sla, std_rdqn_urllc_sla)
-
-    # Clip SLA values between 0 and 1
-    dqn_mean = np.clip(dqn_mean, 0, 1)
-    a2c_mean = np.clip(a2c_mean, 0, 1)
-    rdqn_mean = np.clip(rdqn_mean, 0, 1)
-
-    # Clip the std dev to avoid exceeding bounds
-    dqn_std = np.clip(dqn_std, 0, 1 - dqn_mean)
-    a2c_std = np.clip(a2c_std, 0, 1 - a2c_mean)
-    rdqn_std = np.clip(rdqn_std, 0, 1 - rdqn_mean)
+    random_mean, random_std = adjust_std_and_smooth(mean_random_urllc_sla, std_random_urllc_sla)
 
     plt.plot(dqn_mean, label='DQN', color='blue')
-    plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='blue', alpha=0.1)
-
+    if SHOW_STD_DEV:
+        plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='blue', alpha=0.1)
     plt.plot(a2c_mean, label='A2C', color='orange')
-    plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='orange', alpha=0.1)
-
+    if SHOW_STD_DEV:
+        plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='orange', alpha=0.1)
     plt.plot(rdqn_mean, label='RDQN', color='green')
-    plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='green', alpha=0.1)
+    if SHOW_STD_DEV:
+        plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='green', alpha=0.1)
+    plt.plot(random_mean, label='Random', color='red', linestyle='--')
+    if SHOW_STD_DEV:
+        plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='red', alpha=0.1)
 
     plt.title("URLLC SLA")
     plt.xlabel("Time Steps")
     plt.ylabel("SLA")
+    plt.yscale("log")  # Use log scale for y-axis
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('URLLC_plots.png')
+    plt.close()
+
+    # Plot eMBB metrics
+    plt.figure(figsize=(12, 6))
+
+    # Plot eMBB Blocks
+    plt.subplot(1, 2, 1)
+    dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_embb_blocks, std_dqn_embb_blocks)
+    a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c_embb_blocks, std_a2c_embb_blocks)
+    rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_embb_blocks, std_rdqn_embb_blocks)
+    random_mean, random_std = adjust_std_and_smooth(mean_random_embb_blocks, std_random_embb_blocks)
+
+    plt.plot(dqn_mean, label='DQN', color='blue')
+    if SHOW_STD_DEV:
+        plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='blue', alpha=0.1)
+    plt.plot(a2c_mean, label='A2C', color='orange')
+    if SHOW_STD_DEV:
+        plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='orange', alpha=0.1)
+    plt.plot(rdqn_mean, label='RDQN', color='green')
+    if SHOW_STD_DEV:
+        plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='green', alpha=0.1)
+    plt.plot(random_mean, label='Random', color='red', linestyle='--')
+    if SHOW_STD_DEV:
+        plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='red', alpha=0.1)
+
+    plt.title("eMBB Blocks")
+    plt.xlabel("Time Steps")
+    plt.ylabel("Blocks")
+    plt.yscale("log")  # Use log scale for y-axis
     plt.legend()
 
-    # Plot SLA for eMBB
-    plt.subplot(2, 2, 4)
+    # Plot eMBB SLA
+    plt.subplot(1, 2, 2)
     dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_embb_sla, std_dqn_embb_sla)
     a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c_embb_sla, std_a2c_embb_sla)
     rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_embb_sla, std_rdqn_embb_sla)
-
-    # Clip SLA values between 0 and 1
-    dqn_mean = np.clip(dqn_mean, 0, 1)
-    a2c_mean = np.clip(a2c_mean, 0, 1)
-    rdqn_mean = np.clip(rdqn_mean, 0, 1)
-
-    # Clip the std dev to avoid exceeding bounds
-    dqn_std = np.clip(dqn_std, 0, 1 - dqn_mean)
-    a2c_std = np.clip(a2c_std, 0, 1 - a2c_mean)
-    rdqn_std = np.clip(rdqn_std, 0, 1 - rdqn_mean)
+    random_mean, random_std = adjust_std_and_smooth(mean_random_embb_sla, std_random_embb_sla)
 
     plt.plot(dqn_mean, label='DQN', color='blue')
-    plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='blue', alpha=0.1)
-
+    if SHOW_STD_DEV:
+        plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='blue', alpha=0.1)
     plt.plot(a2c_mean, label='A2C', color='orange')
-    plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='orange', alpha=0.1)
-
+    if SHOW_STD_DEV:
+        plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='orange', alpha=0.1)
     plt.plot(rdqn_mean, label='RDQN', color='green')
-    plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='green', alpha=0.1)
+    if SHOW_STD_DEV:
+        plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='green', alpha=0.1)
+    plt.plot(random_mean, label='Random', color='red', linestyle='--')
+    if SHOW_STD_DEV:
+        plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='red', alpha=0.1)
 
     plt.title("eMBB SLA")
     plt.xlabel("Time Steps")
     plt.ylabel("SLA")
+    plt.yscale("log")  # Use log scale for y-axis
     plt.legend()
-    plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    plt.savefig('Benchmark_plots.png')
-    plt.show()
+    plt.savefig('eMBB_plots.png')
+    plt.close()
 
 # Run plotting function
 plot_results()

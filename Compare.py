@@ -193,11 +193,8 @@ SHOW_STD_DEV = False  # Set to False to disable standard deviation display
 # ================================
 
 def plot_results():
-    # Plot URLLC metrics
-    plt.figure(figsize=(12, 6))
-
     # Plot URLLC Blocks
-    plt.subplot(1, 2, 1)
+    plt.figure(figsize=(6, 4))
     dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_urllc_blocks, std_dqn_urllc_blocks)
     a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c_urllc_blocks, std_a2c_urllc_blocks)
     rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_urllc_blocks, std_rdqn_urllc_blocks)
@@ -212,18 +209,21 @@ def plot_results():
     plt.plot(rdqn_mean, label='RDQN', color='green')
     if SHOW_STD_DEV:
         plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='green', alpha=0.1)
-    plt.plot(random_mean, label='Random', color='red', linestyle='--')
+    plt.plot(random_mean, label='Baseline', color='red', linestyle='--')
     if SHOW_STD_DEV:
         plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='red', alpha=0.1)
 
-    plt.title("URLLC Blocks")
+    plt.title("URLLC Block Rate")
     plt.xlabel("Time Steps")
-    plt.ylabel("Blocks")
-    plt.yscale("log")  # Use log scale for y-axis
+    plt.ylabel("Requests Blocked")
+    plt.yscale("linear")
     plt.legend()
+    plt.tight_layout()
+    plt.savefig('URLLC_Blocks.png')
+    plt.close()
 
     # Plot URLLC SLA
-    plt.subplot(1, 2, 2)
+    plt.figure(figsize=(6, 4))
     dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_urllc_sla, std_dqn_urllc_sla)
     a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c_urllc_sla, std_a2c_urllc_sla)
     rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_urllc_sla, std_rdqn_urllc_sla)
@@ -238,24 +238,21 @@ def plot_results():
     plt.plot(rdqn_mean, label='RDQN', color='green')
     if SHOW_STD_DEV:
         plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='green', alpha=0.1)
-    plt.plot(random_mean, label='Random', color='red', linestyle='--')
+    plt.plot(random_mean, label='Baseline', color='red', linestyle='--')
     if SHOW_STD_DEV:
         plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='red', alpha=0.1)
 
-    plt.title("URLLC SLA")
+    plt.title("URLLC SLA Satisfaction Rate")
     plt.xlabel("Time Steps")
-    plt.ylabel("SLA")
-    plt.yscale("log")  # Use log scale for y-axis
+    plt.ylabel("SLA Violations")
+    plt.yscale("linear")
     plt.legend()
     plt.tight_layout()
-    plt.savefig('URLLC_plots.png')
+    plt.savefig('URLLC_SLA.png')
     plt.close()
 
-    # Plot eMBB metrics
-    plt.figure(figsize=(12, 6))
-
     # Plot eMBB Blocks
-    plt.subplot(1, 2, 1)
+    plt.figure(figsize=(6, 4))
     dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_embb_blocks, std_dqn_embb_blocks)
     a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c_embb_blocks, std_a2c_embb_blocks)
     rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_embb_blocks, std_rdqn_embb_blocks)
@@ -270,18 +267,21 @@ def plot_results():
     plt.plot(rdqn_mean, label='RDQN', color='green')
     if SHOW_STD_DEV:
         plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='green', alpha=0.1)
-    plt.plot(random_mean, label='Random', color='red', linestyle='--')
+    plt.plot(random_mean, label='Baseline', color='red', linestyle='--')
     if SHOW_STD_DEV:
         plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='red', alpha=0.1)
 
-    plt.title("eMBB Blocks")
+    plt.title("eMBB Block Rate")
     plt.xlabel("Time Steps")
-    plt.ylabel("Blocks")
-    plt.yscale("log")  # Use log scale for y-axis
+    plt.ylabel("Requests Blocked")
+    plt.yscale("linear")
     plt.legend()
+    plt.tight_layout()
+    plt.savefig('eMBB_Blocks.png')
+    plt.close()
 
     # Plot eMBB SLA
-    plt.subplot(1, 2, 2)
+    plt.figure(figsize=(6, 4))
     dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_embb_sla, std_dqn_embb_sla)
     a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c_embb_sla, std_a2c_embb_sla)
     rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_embb_sla, std_rdqn_embb_sla)
@@ -296,17 +296,17 @@ def plot_results():
     plt.plot(rdqn_mean, label='RDQN', color='green')
     if SHOW_STD_DEV:
         plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='green', alpha=0.1)
-    plt.plot(random_mean, label='Random', color='red', linestyle='--')
+    plt.plot(random_mean, label='Baseline', color='red', linestyle='--')
     if SHOW_STD_DEV:
         plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='red', alpha=0.1)
 
-    plt.title("eMBB SLA")
+    plt.title("eMBB SLA Satisfaction Rate")
     plt.xlabel("Time Steps")
-    plt.ylabel("SLA")
-    plt.yscale("log")  # Use log scale for y-axis
+    plt.ylabel("SLA Violations")
+    plt.yscale("linear")
     plt.legend()
     plt.tight_layout()
-    plt.savefig('eMBB_plots.png')
+    plt.savefig('eMBB_SLA.png')
     plt.close()
 
 # Run plotting function

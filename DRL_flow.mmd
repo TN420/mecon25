@@ -1,0 +1,11 @@
+flowchart TD
+  %% Global styles for bigger font and tighter spacing
+  classDef bigText font-size:18px;
+  class * bigText;
+  linkStyle default stroke-width:1px,stroke:black;
+  
+  %% Flow
+  A([Start Script]) --> B([Initialize RANEnv]) --> C{{Select Algorithm}}
+  C -->|DQN| D1([Define DQN Network]) --> X([Init Replay Buffer]) --> T([Run Training Loop])
+  C -->|Rainbow DQN| R1([Define Rainbow DQN Network]) --> Y([Init Prioritized Replay Buffer]) --> T
+  C -->|A2C| A1([Define Actor-Critic Networks]) --> Z([Init Optimizer]) --> T

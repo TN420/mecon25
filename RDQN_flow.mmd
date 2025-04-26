@@ -1,0 +1,7 @@
+flowchart TD
+  A[Start Script] --> B[Initialize RANEnv] --> C[Define Rainbow DQN Network] --> D[Initialize Prioritized Replay Buffer] --> E{Loop over 100 Runs} --> F[Call train_dqn]
+  F --> G[Reset Env and Initialize Networks] --> H{Loop over Episodes} --> I[Reset Environment] --> J{Loop over Steps} --> K[Select Traffic Type] --> L[Choose Action - Epsilon Greedy] --> M[Step in Environment] --> N[Store Transition in Replay Buffer] --> O[Track Reward, SLA Stats, and Blocked Requests]
+  O --> P{Is Memory Full Enough?} -->|Yes| Q[Sample Mini-Batch from Replay Buffer] --> R[Compute TD Error and Loss] --> S[Backprop and Update Network] --> T[Update Priorities in Replay Buffer] --> J
+  P -->|No| J --> U[Update Target Network if needed] --> H
+  H -->|End of Episodes| V[Save Results to File] --> E
+  E --> W[End Script]

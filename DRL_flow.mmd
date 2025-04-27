@@ -7,5 +7,5 @@ flowchart TD
   %% Flow
   A([Start Script]) --> B([Initialize RANEnv]) --> C{{Select Algorithm}}
   C -->|DQN| D1([Define DQN Network]) --> X([Init Replay Buffer]) --> T([Run Training Loop])
-  C -->|Rainbow DQN| R1([Define Rainbow Network]) --> Y([Init Prioritized Replay Buffer]) --> T
+  C -->|Rainbow| R1([Define Rainbow Network]) --> Y([Init Prioritized Replay Buffer]) --> T
   C -->|A2C| A1([Define Actor-Critic Networks]) --> Z([Init Optimizer]) --> T

@@ -1,4 +1,4 @@
-# DQN.py (Standard Replay Buffer Version)
+# DQN.py
 
 import os
 import random

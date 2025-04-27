@@ -25,14 +25,8 @@ TRAFFIC_TYPES = ['URLLC', 'eMBB']
 # A2C Hyperparameters
 GAMMA = 0.95
 LR = 0.001
-BATCH_SIZE = 16
-MEMORY_SIZE = 5000
-TARGET_UPDATE = 10
 EPISODES = 300
 STEPS_PER_EPISODE = 50
-EPSILON_START = 0.9
-EPSILON_END = 0.05
-EPSILON_DECAY = 100
 
 # ================================
 # Environment

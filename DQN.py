@@ -1,4 +1,4 @@
-# DQN.py
+# DQN.py (Standard Replay Buffer Version)
 
 import os
 import random
@@ -31,8 +31,6 @@ STEPS_PER_EPISODE = 50
 EPSILON_START = 0.9
 EPSILON_END = 0.05
 EPSILON_DECAY = 100
-ALPHA = 0.6  # prioritization exponent
-BETA_START = 0.4  # importance-sampling exponent
 
 # ================================
 # Environment
@@ -111,52 +109,22 @@ class DQN(nn.Module):
         return self.fc2(x)
 
 # ================================
-# Prioritized Replay Buffer
+# Standard Replay Buffer
 # ================================
 
-class PrioritizedReplayBuffer:
+class ReplayBuffer:
     def __init__(self, capacity):
         self.capacity = capacity
-        self.buffer = []
-        self.priorities = np.zeros((capacity,), dtype=np.float32)
-        self.pos = 0
+        self.buffer = deque(maxlen=capacity)
 
     def push(self, state, action, reward, next_state):
-        max_priority = self.priorities.max() if self.buffer else 1.0
+        self.buffer.append((state, action, reward, next_state))
 
-        if len(self.buffer) < self.capacity:
-            self.buffer.append((state, action, reward, next_state))
-        else:
-            self.buffer[self.pos] = (state, action, reward, next_state)
-
-        self.priorities[self.pos] = max_priority
-        self.pos = (self.pos + 1) % self.capacity
-
-    def sample(self, batch_size, beta=BETA_START):
-        if len(self.buffer) == self.capacity:
-            priorities = self.priorities
-        else:
-            priorities = self.priorities[:self.pos]
-
-        probs = priorities ** ALPHA
-        probs /= probs.sum()
-
-        indices = np.random.choice(len(self.buffer), batch_size, p=probs)
-        samples = [self.buffer[idx] for idx in indices]
-
-        total = len(self.buffer)
-        weights = (total * probs[indices]) ** (-beta)
-        weights /= weights.max()
-        weights = np.array(weights, dtype=np.float32)
-
+    def sample(self, batch_size):
+        samples = random.sample(self.buffer, batch_size)
         batch = list(zip(*samples))
         states, actions, rewards, next_states = map(np.array, batch)
-
-        return states, actions, rewards, next_states, indices, weights
-
-    def update_priorities(self, indices, td_errors):
-        for idx, td_error in zip(indices, td_errors):
-            self.priorities[idx] = abs(td_error) + 1e-5
+        return states, actions, rewards, next_states
 
     def __len__(self):
         return len(self.buffer)
@@ -176,7 +144,7 @@ def train_dqn(episodes=EPISODES, run_id=1):
     target_net.eval()
 
     optimizer = optim.Adam(policy_net.parameters(), lr=LR)
-    memory = PrioritizedReplayBuffer(MEMORY_SIZE)
+    memory = ReplayBuffer(MEMORY_SIZE)
 
     reward_history = []
     urllc_block_history = []
@@ -193,8 +161,6 @@ def train_dqn(episodes=EPISODES, run_id=1):
         embb_sla_preserved = 0
         urllc_total_requests = 0
         embb_total_requests = 0
-
-        beta = min(1.0, BETA_START + episode * (1.0 - BETA_START) / episodes)
 
         for t in range(STEPS_PER_EPISODE):
             traffic_type = random.choice(TRAFFIC_TYPES)
@@ -223,25 +189,21 @@ def train_dqn(episodes=EPISODES, run_id=1):
             total_reward += reward
 
             if len(memory) >= BATCH_SIZE:
-                s, a, r, ns, indices, weights = memory.sample(BATCH_SIZE, beta)
+                s, a, r, ns = memory.sample(BATCH_SIZE)
                 s = torch.tensor(s).float()
                 a = torch.tensor(a).long()
                 r = torch.tensor(r).float()
                 ns = torch.tensor(ns).float()
-                weights = torch.tensor(weights).float()
 
                 q_values = policy_net(s).gather(1, a.unsqueeze(1)).squeeze()
                 next_q_values = target_net(ns).max(1)[0].detach()
                 expected_q = r + GAMMA * next_q_values
 
-                td_errors = expected_q - q_values
-                loss = (td_errors.pow(2) * weights).mean()
+                loss = nn.MSELoss()(q_values, expected_q)
 
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-
-                memory.update_priorities(indices, td_errors.detach().numpy())
 
         reward_history.append(total_reward)
         urllc_block_history.append(urllc_blocks)

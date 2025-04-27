@@ -1,0 +1,48 @@
+flowchart TD
+  A[Start Script] --> B[Initialize RANEnv]
+  B --> C{Select Algorithm}
+
+  %% Algorithm Setup
+  C -->|DQN| D1[Define DQN Network]
+  C -->|Rainbow DQN| R1[Define Rainbow Network]
+  C -->|A2C| A1[Define Actor-Critic Networks]
+
+  %% Initialization
+  D1 --> X[Init Replay Buffer]
+  R1 --> Y[Init Prioritized Replay Buffer]
+  A1 --> Z[Init Optimizer]
+
+  X --> T[Run Training Loop]
+  Y --> T
+  Z --> T
+
+  %% Shared Training Structure
+  T --> T1[Loop: Runs and Episodes]
+  T1 --> T2[Reset Env and Networks]
+  T2 --> T3[Loop: Steps per Episode]
+  T3 --> T4[Select Traffic Type]
+  T4 --> T5{Select Action}
+  T5 -->|DQN| T5a[Epsilon-Greedy]
+  T5 -->|A2C| T5b[Actor Network]
+  T5 -->|Rainbow| T5c[NoisyNet]
+  T5a --> T6[Step in Env]
+  T5b --> T6
+  T5c --> T6
+
+  T6 --> T7[Track Reward, SLA, Blocks]
+  T7 --> T8[Store Transition]
+
+  T8 --> T9{Memory Ready?}
+  T9 -->|Yes| T10[Sample Mini-Batch]
+  T10 --> T11{Compute Loss}
+  T11 -->|DQN & Rainbow| T11a[TD Error + Backprop]
+  T11 -->|A2C| T11b[Advantage + Backprop]
+  T11a --> T12[Update Network]
+  T11b --> T12
+  T12 --> T13[Update Target Network]
+
+  T13 --> T3
+  T9 -->|No| T3
+
+  T1 --> T14[Save Results]
+  T14 --> End[End Script]

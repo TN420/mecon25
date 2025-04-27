@@ -200,19 +200,20 @@ def plot_results():
     rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_urllc_blocks, std_rdqn_urllc_blocks)
     random_mean, random_std = adjust_std_and_smooth(mean_random_urllc_blocks, std_random_urllc_blocks)
 
-    plt.plot(dqn_mean, label='DQN', color='blue')
+    plt.plot(dqn_mean, label='DQN', color='#d95f02', linewidth=2)  # DQN
     if SHOW_STD_DEV:
-        plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='blue', alpha=0.1)
-    plt.plot(a2c_mean, label='A2C', color='orange')
+        plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='#d95f02', alpha=0.1)
+    plt.plot(a2c_mean, label='A2C', color='#1b9e77', linewidth=2)  # A2C
     if SHOW_STD_DEV:
-        plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='orange', alpha=0.1)
-    plt.plot(rdqn_mean, label='RDQN', color='green')
+        plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='#1b9e77', alpha=0.1)
+    plt.plot(rdqn_mean, label='Rainbow', color='#7570b3', linewidth=2)  # Rainbow
     if SHOW_STD_DEV:
-        plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='green', alpha=0.1)
-    plt.plot(random_mean, label='Baseline', color='red', linestyle='--')
+        plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='#7570b3', alpha=0.1)
+    plt.plot(random_mean, label='Base', color='gray', linestyle='--', linewidth=2)  # Base
     if SHOW_STD_DEV:
-        plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='red', alpha=0.1)
+        plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='gray', alpha=0.1)
 
+    plt.xlim(0, max_length)  # Set x-axis limit to max_length
     plt.title("URLLC Block Rate")
     plt.xlabel("Time Steps")
     plt.ylabel("Requests Blocked")
@@ -229,19 +230,20 @@ def plot_results():
     rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_urllc_sla, std_rdqn_urllc_sla)
     random_mean, random_std = adjust_std_and_smooth(mean_random_urllc_sla, std_random_urllc_sla)
 
-    plt.plot(dqn_mean, label='DQN', color='blue')
+    plt.plot(dqn_mean, label='DQN', color='#d95f02', linewidth=2)  # DQN
     if SHOW_STD_DEV:
-        plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='blue', alpha=0.1)
-    plt.plot(a2c_mean, label='A2C', color='orange')
+        plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='#d95f02', alpha=0.1)
+    plt.plot(a2c_mean, label='A2C', color='#1b9e77', linewidth=2)  # A2C
     if SHOW_STD_DEV:
-        plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='orange', alpha=0.1)
-    plt.plot(rdqn_mean, label='RDQN', color='green')
+        plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='#1b9e77', alpha=0.1)
+    plt.plot(rdqn_mean, label='Rainbow', color='#7570b3', linewidth=2)  # Rainbow
     if SHOW_STD_DEV:
-        plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='green', alpha=0.1)
-    plt.plot(random_mean, label='Baseline', color='red', linestyle='--')
+        plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='#7570b3', alpha=0.1)
+    plt.plot(random_mean, label='Base', color='gray', linestyle='--', linewidth=2)  # Base
     if SHOW_STD_DEV:
-        plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='red', alpha=0.1)
+        plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='gray', alpha=0.1)
 
+    plt.xlim(0, max_length)  # Set x-axis limit to max_length
     plt.title("URLLC SLA Satisfaction Rate")
     plt.xlabel("Time Steps")
     plt.ylabel("SLA Violations")
@@ -258,19 +260,20 @@ def plot_results():
     rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_embb_blocks, std_rdqn_embb_blocks)
     random_mean, random_std = adjust_std_and_smooth(mean_random_embb_blocks, std_random_embb_blocks)
 
-    plt.plot(dqn_mean, label='DQN', color='blue')
+    plt.plot(dqn_mean, label='DQN', color='#d95f02', linewidth=2)  # DQN
     if SHOW_STD_DEV:
-        plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='blue', alpha=0.1)
-    plt.plot(a2c_mean, label='A2C', color='orange')
+        plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='#d95f02', alpha=0.1)
+    plt.plot(a2c_mean, label='A2C', color='#1b9e77', linewidth=2)  # A2C
     if SHOW_STD_DEV:
-        plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='orange', alpha=0.1)
-    plt.plot(rdqn_mean, label='RDQN', color='green')
+        plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='#1b9e77', alpha=0.1)
+    plt.plot(rdqn_mean, label='Rainbow', color='#7570b3', linewidth=2)  # Rainbow
     if SHOW_STD_DEV:
-        plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='green', alpha=0.1)
-    plt.plot(random_mean, label='Baseline', color='red', linestyle='--')
+        plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='#7570b3', alpha=0.1)
+    plt.plot(random_mean, label='Base', color='gray', linestyle='--', linewidth=2)  # Base
     if SHOW_STD_DEV:
-        plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='red', alpha=0.1)
+        plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='gray', alpha=0.1)
 
+    plt.xlim(0, max_length)  # Set x-axis limit to max_length
     plt.title("eMBB Block Rate")
     plt.xlabel("Time Steps")
     plt.ylabel("Requests Blocked")
@@ -287,19 +290,20 @@ def plot_results():
     rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_embb_sla, std_rdqn_embb_sla)
     random_mean, random_std = adjust_std_and_smooth(mean_random_embb_sla, std_random_embb_sla)
 
-    plt.plot(dqn_mean, label='DQN', color='blue')
+    plt.plot(dqn_mean, label='DQN', color='#d95f02', linewidth=2)  # DQN
     if SHOW_STD_DEV:
-        plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='blue', alpha=0.1)
-    plt.plot(a2c_mean, label='A2C', color='orange')
+        plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='#d95f02', alpha=0.1)
+    plt.plot(a2c_mean, label='A2C', color='#1b9e77', linewidth=2)  # A2C
     if SHOW_STD_DEV:
-        plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='orange', alpha=0.1)
-    plt.plot(rdqn_mean, label='RDQN', color='green')
+        plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='#1b9e77', alpha=0.1)
+    plt.plot(rdqn_mean, label='Rainbow', color='#7570b3', linewidth=2)  # Rainbow
     if SHOW_STD_DEV:
-        plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='green', alpha=0.1)
-    plt.plot(random_mean, label='Baseline', color='red', linestyle='--')
+        plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='#7570b3', alpha=0.1)
+    plt.plot(random_mean, label='Base', color='gray', linestyle='--', linewidth=2)  # Base
     if SHOW_STD_DEV:
-        plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='red', alpha=0.1)
+        plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='gray', alpha=0.1)
 
+    plt.xlim(0, max_length)  # Set x-axis limit to max_length
     plt.title("eMBB SLA Satisfaction Rate")
     plt.xlabel("Time Steps")
     plt.ylabel("SLA Violations")

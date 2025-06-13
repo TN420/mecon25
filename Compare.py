@@ -8,14 +8,19 @@ import os
 # Configuration
 # ================================
 
-NUM_RUNS = 100  # Number of runs you performed
+NUM_RUNS = 5  # Number of runs you performed
 
 RESULTS_DIR = "/home/w5/pydemo/mecon25/results"
+
+# Define the subdirectories for each model's results
+DQN_RESULTS_DIR = os.path.join(RESULTS_DIR, "results_dqn")
+A2C_RESULTS_DIR = os.path.join(RESULTS_DIR, "results_a2c")
+RDQN_RESULTS_DIR = os.path.join(RESULTS_DIR, "results_rdqn")
 
 # Define the file pattern for the saved NPZ files
 DQN_FILE_PATTERN = "dqn_results_run_{}.npz"
 A2C_FILE_PATTERN = "a2c_results_run_{}.npz"
-RDQN_FILE_PATTERN = "rdqn_results_run_{}.npz"  # Updated RDQN pattern
+RDQN_FILE_PATTERN = "rdqn_results_run_{}.npz"
 
 # Initialize lists to hold data from all runs
 dqn_urllc_blocks_all = []
@@ -37,7 +42,7 @@ rdqn_embb_sla_all = []  # Updated RDQN list
 
 print("Checking shapes of all metrics across runs...")
 
-max_length = max([len(np.load(os.path.join(RESULTS_DIR, DQN_FILE_PATTERN.format(run_id)))['urllc_blocks']) 
+max_length = max([len(np.load(os.path.join(DQN_RESULTS_DIR, DQN_FILE_PATTERN.format(run_id)))['urllc_blocks']) 
                   for run_id in range(1, NUM_RUNS + 1)])
 
 print(f"Max length across all runs: {max_length}")
@@ -58,10 +63,10 @@ def resize_data(data, target_length):
 # ================================
 
 for run_id in range(1, NUM_RUNS + 1):
-    # Load DQN, A2C, and RDQN results for this run
-    dqn_file = os.path.join(RESULTS_DIR, DQN_FILE_PATTERN.format(run_id))
-    a2c_file = os.path.join(RESULTS_DIR, A2C_FILE_PATTERN.format(run_id))
-    rdqn_file = os.path.join(RESULTS_DIR, RDQN_FILE_PATTERN.format(run_id))
+    # Load DQN, A2C, and RDQN results for this run from their respective subdirectories
+    dqn_file = os.path.join(DQN_RESULTS_DIR, DQN_FILE_PATTERN.format(run_id))
+    a2c_file = os.path.join(A2C_RESULTS_DIR, A2C_FILE_PATTERN.format(run_id))
+    rdqn_file = os.path.join(RDQN_RESULTS_DIR, RDQN_FILE_PATTERN.format(run_id))
     
     if os.path.exists(dqn_file) and os.path.exists(a2c_file) and os.path.exists(rdqn_file):
         dqn_results = np.load(dqn_file)

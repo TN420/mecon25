@@ -296,13 +296,13 @@ def train_dqn(episodes=EPISODES, run_id=1):
 
         print(f"Episode {episode+1}/{episodes} - Total Reward: {total_reward}")
 
-    os.makedirs("results", exist_ok=True)
-    np.savez(f"results/rdqn_results_run_{run_id}.npz",
+    os.makedirs("results/results_rdqn", exist_ok=True)
+    np.savez(f"results/results_rdqn/rdqn_results_run_{run_id}.npz",
              rewards=reward_history,
              urllc_blocks=urllc_block_history,
              embb_blocks=embb_block_history,
              urllc_sla=urllc_sla_pres,
              embb_sla=embb_sla_pres)
 
-for run_id in range(1, 101):
+for run_id in range(1, 6):  # Run [X] simulations with different IDs
     train_dqn(episodes=EPISODES, run_id=run_id)

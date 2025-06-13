@@ -123,7 +123,7 @@ class Critic(nn.Module):
 
 def save_results(run_id, rewards, urllc_blocks, embb_blocks, urllc_sla, embb_sla):
     # Ensure the results folder exists
-    results_dir = "results"
+    results_dir = "results/results_a2c"
     os.makedirs(results_dir, exist_ok=True)
     
     # Save results with a unique run ID to avoid overwriting
@@ -235,5 +235,5 @@ def train_a2c(episodes=EPISODES, run_id=1):
 # Run Multiple A2C Simulations
 # ================================
 
-for run_id in range(1, 101):  # Run 5 simulations with different IDs
+for run_id in range(1, 6):  # Run [X] simulations with different IDs
     train_a2c(episodes=EPISODES, run_id=run_id)

@@ -9,7 +9,8 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import deque
-import time
+import time  # Added for timing
+import csv  # Added for CSV writing
 
 # ================================
 # Configuration Constants
@@ -134,6 +135,7 @@ class ReplayBuffer:
 # ================================
 
 def train_dqn(episodes=EPISODES, run_id=1):
+    start_time = time.time()  # Start timing
     env = RANEnv()
     state_size = len(env.reset())
     action_size = 2
@@ -216,6 +218,16 @@ def train_dqn(episodes=EPISODES, run_id=1):
 
         print(f"Episode {episode+1}/{episodes} - Total Reward: {total_reward}")
 
+    elapsed_time = time.time() - start_time  # End timing
+    print(f"DQN Training Time for Run {run_id}: {elapsed_time:.2f} seconds")
+
+    # Save training time to a DQN-specific CSV file
+    with open("training_times_dqn.csv", mode="a", newline="") as file:
+        writer = csv.writer(file)
+        if file.tell() == 0:  # Add headers if the file is empty
+            writer.writerow(["Run_ID", "Training_Time", "Gamma", "Learning_Rate", "Batch_Size", "Memory_Size"])
+        writer.writerow([run_id, elapsed_time, GAMMA, LR, BATCH_SIZE, MEMORY_SIZE])
+
     os.makedirs("results/results_dqn", exist_ok=True)
     np.savez(f"results/results_dqn/dqn_results_run_{run_id}.npz",
              rewards=reward_history,
@@ -224,5 +236,22 @@ def train_dqn(episodes=EPISODES, run_id=1):
              urllc_sla=urllc_sla_pres,
              embb_sla=embb_sla_pres)
 
-for run_id in range(1, 6):  # Run [X] simulations with different IDs
-    train_dqn(episodes=EPISODES, run_id=run_id)
+if __name__ == "__main__":
+    for run_id in range(1, 6):  # Run [X] simulations with different IDs
+        train_dqn(episodes=EPISODES, run_id=run_id)
+
+    # Calculate averages
+    dqn_times = []
+    if os.path.exists("training_times_dqn.csv"):
+        with open("training_times_dqn.csv", mode="r") as file:
+            reader = csv.reader(file)
+            for row in reader:
+                if row[0].isdigit():  # Only consider rows with run IDs
+                    dqn_times.append(float(row[1]))
+
+    average_time = np.mean(dqn_times) if dqn_times else 0
+    with open("training_times_dqn.csv", mode="a", newline="") as file:
+        writer = csv.writer(file)
+        if file.tell() == 0:  # Add headers if the file is empty
+            writer.writerow(["Run_ID", "Training_Time", "Gamma", "Learning_Rate", "Batch_Size", "Memory_Size"])
+        writer.writerow(["Average", average_time, GAMMA, LR, BATCH_SIZE, MEMORY_SIZE])

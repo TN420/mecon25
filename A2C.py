@@ -9,6 +9,8 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import deque
+import time  # Added for timing
+import csv  # Added for CSV writing
 
 # ================================
 # Configuration Constants
@@ -139,6 +141,7 @@ def save_results(run_id, rewards, urllc_blocks, embb_blocks, urllc_sla, embb_sla
 # ================================
 
 def train_a2c(episodes=EPISODES, run_id=1):
+    start_time = time.time()  # Start timing
     env = RANEnv()
     state_size = len(env.reset())
     action_size = 2
@@ -214,6 +217,16 @@ def train_a2c(episodes=EPISODES, run_id=1):
 
         print(f"Episode {episode+1}/{episodes} - Episode Return: {episode_return}")
 
+    elapsed_time = time.time() - start_time  # End timing
+    print(f"A2C Training Time for Run {run_id}: {elapsed_time:.2f} seconds")
+
+    # Save training time to an A2C-specific CSV file
+    with open("training_times_a2c.csv", mode="a", newline="") as file:
+        writer = csv.writer(file)
+        if file.tell() == 0:  # Add headers if the file is empty
+            writer.writerow(["Run_ID", "Training_Time", "Gamma", "Learning_Rate"])
+        writer.writerow([run_id, elapsed_time, GAMMA, LR])
+
     # Save results for the current run with a unique ID
     save_results(run_id, reward_history, urllc_block_history, embb_block_history, urllc_sla_pres, embb_sla_pres)
 
@@ -235,5 +248,22 @@ def train_a2c(episodes=EPISODES, run_id=1):
 # Run Multiple A2C Simulations
 # ================================
 
-for run_id in range(1, 6):  # Run [X] simulations with different IDs
-    train_a2c(episodes=EPISODES, run_id=run_id)
+if __name__ == "__main__":
+    for run_id in range(1, 6):  # Run [X] simulations with different IDs
+        train_a2c(episodes=EPISODES, run_id=run_id)
+
+    # Calculate averages
+    a2c_times = []
+    if os.path.exists("training_times_a2c.csv"):
+        with open("training_times_a2c.csv", mode="r") as file:
+            reader = csv.reader(file)
+            for row in reader:
+                if row[0].isdigit():  # Only consider rows with run IDs
+                    a2c_times.append(float(row[1]))
+
+    average_time = np.mean(a2c_times) if a2c_times else 0
+    with open("training_times_a2c.csv", mode="a", newline="") as file:
+        writer = csv.writer(file)
+        if file.tell() == 0:  # Add headers if the file is empty
+            writer.writerow(["Run_ID", "Training_Time", "Gamma", "Learning_Rate"])
+        writer.writerow(["Average", average_time, GAMMA, LR])

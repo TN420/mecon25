@@ -300,11 +300,11 @@ for gamma in RDQN_GAMMAS:
 # ================================
 PLOT_A2C = False
 PLOT_DQN = False
-PLOT_DQN_GAMMAS = False
-PLOT_A2C_GAMMAS = False
 PLOT_RDQN = False
-PLOT_RANDOM = True
-PLOT_RDQN_GAMMAS = True
+PLOT_A2C_GAMMAS = False
+PLOT_DQN_GAMMAS = True
+PLOT_RDQN_GAMMAS = False
+PLOT_RANDOM = False
 
 # ================================
 # Plotting

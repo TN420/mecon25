@@ -134,7 +134,7 @@ class ReplayBuffer:
 # Training Loop
 # ================================
 
-def train_dqn(episodes=EPISODES, run_id=1):
+def train_dqn(episodes=EPISODES, run_id=1, gamma=GAMMA):
     start_time = time.time()  # Start timing
     env = RANEnv()
     state_size = len(env.reset())
@@ -199,7 +199,7 @@ def train_dqn(episodes=EPISODES, run_id=1):
 
                 q_values = policy_net(s).gather(1, a.unsqueeze(1)).squeeze()
                 next_q_values = target_net(ns).max(1)[0].detach()
-                expected_q = r + GAMMA * next_q_values
+                expected_q = r + gamma * next_q_values
 
                 loss = nn.MSELoss()(q_values, expected_q)
 
@@ -219,17 +219,19 @@ def train_dqn(episodes=EPISODES, run_id=1):
         print(f"Episode {episode+1}/{episodes} - Total Reward: {total_reward}")
 
     elapsed_time = time.time() - start_time  # End timing
-    print(f"DQN Training Time for Run {run_id}: {elapsed_time:.2f} seconds")
+    print(f"DQN Training Time for Run {run_id} (gamma={gamma}): {elapsed_time:.2f} seconds")
 
-    # Save training time to a DQN-specific CSV file
-    with open("training_times_dqn.csv", mode="a", newline="") as file:
+    # Save training time to a DQN-specific CSV file (gamma in filename)
+    gamma_str = str(gamma).replace('.', '_')
+    times_csv = f"training_times_dqn_gamma_{gamma_str}.csv"
+    with open(times_csv, mode="a", newline="") as file:
         writer = csv.writer(file)
         if file.tell() == 0:  # Add headers if the file is empty
             writer.writerow(["Run_ID", "Training_Time", "Gamma", "Learning_Rate", "Batch_Size", "Memory_Size"])
-        writer.writerow([run_id, elapsed_time, GAMMA, LR, BATCH_SIZE, MEMORY_SIZE])
+        writer.writerow([run_id, elapsed_time, gamma, LR, BATCH_SIZE, MEMORY_SIZE])
 
-    os.makedirs("results/results_dqn", exist_ok=True)
-    np.savez(f"results/results_dqn/dqn_results_run_{run_id}.npz",
+    os.makedirs(f"results/results_dqn_gamma_{gamma_str}", exist_ok=True)
+    np.savez(f"results/results_dqn_gamma_{gamma_str}/dqn_results_run_{run_id}_gamma_{gamma_str}.npz",
              rewards=reward_history,
              urllc_blocks=urllc_block_history,
              embb_blocks=embb_block_history,
@@ -237,21 +239,25 @@ def train_dqn(episodes=EPISODES, run_id=1):
              embb_sla=embb_sla_pres)
 
 if __name__ == "__main__":
-    for run_id in range(1, 6):  # Run [X] simulations with different IDs
-        train_dqn(episodes=EPISODES, run_id=run_id)
+    gamma_values = [0.9, GAMMA, 0.99]
+    for gamma in gamma_values:
+        for run_id in range(1, 31):  # Run [X] simulations with different IDs
+            train_dqn(episodes=EPISODES, run_id=run_id, gamma=gamma)
 
-    # Calculate averages
-    dqn_times = []
-    if os.path.exists("training_times_dqn.csv"):
-        with open("training_times_dqn.csv", mode="r") as file:
-            reader = csv.reader(file)
-            for row in reader:
-                if row[0].isdigit():  # Only consider rows with run IDs
-                    dqn_times.append(float(row[1]))
+        # Calculate averages for each gamma
+        gamma_str = str(gamma).replace('.', '_')
+        dqn_times = []
+        times_csv = f"training_times_dqn_gamma_{gamma_str}.csv"
+        if os.path.exists(times_csv):
+            with open(times_csv, mode="r") as file:
+                reader = csv.reader(file)
+                for row in reader:
+                    if row[0].isdigit():  # Only consider rows with run IDs
+                        dqn_times.append(float(row[1]))
 
-    average_time = np.mean(dqn_times) if dqn_times else 0
-    with open("training_times_dqn.csv", mode="a", newline="") as file:
-        writer = csv.writer(file)
-        if file.tell() == 0:  # Add headers if the file is empty
-            writer.writerow(["Run_ID", "Training_Time", "Gamma", "Learning_Rate", "Batch_Size", "Memory_Size"])
-        writer.writerow(["Average", average_time, GAMMA, LR, BATCH_SIZE, MEMORY_SIZE])
+        average_time = np.mean(dqn_times) if dqn_times else 0
+        with open(times_csv, mode="a", newline="") as file:
+            writer = csv.writer(file)
+            if file.tell() == 0:  # Add headers if the file is empty
+                writer.writerow(["Run_ID", "Training_Time", "Gamma", "Learning_Rate", "Batch_Size", "Memory_Size"])
+            writer.writerow(["Average", average_time, gamma, LR, BATCH_SIZE, MEMORY_SIZE])

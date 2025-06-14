@@ -1,0 +1,4 @@
+gamma,avg_reward,avg_urllc_blocks,avg_embb_blocks,avg_urllc_sla,avg_embb_sla
+9.0,8.565,0.146,2.267,0.995,0.87
+95.0,8.591,0.145,2.024,0.995,0.883
+99.0,8.422,0.138,1.819,0.995,0.897

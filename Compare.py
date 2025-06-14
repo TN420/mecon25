@@ -194,31 +194,170 @@ def adjust_std_and_smooth(mean_data, std_data):
 SHOW_STD_DEV = False  # Set to False to disable standard deviation display
 
 # ================================
+# DQN/A2C/RDQN Gamma Overlay Setup
+# ================================
+
+DQN_GAMMAS = [0.9, 0.95, 0.99]
+A2C_GAMMAS = [0.9, 0.95, 0.99]
+RDQN_GAMMAS = [0.9, 0.95, 0.99]
+DQN_GAMMA_LABELS = {0.9: "DQN γ=0.9", 0.95: "DQN γ=0.95", 0.99: "DQN γ=0.99"}
+A2C_GAMMA_LABELS = {0.9: "A2C γ=0.9", 0.95: "A2C γ=0.95", 0.99: "A2C γ=0.99"}
+RDQN_GAMMA_LABELS = {0.9: "RDQN γ=0.9", 0.95: "RDQN γ=0.95", 0.99: "RDQN γ=0.99"}
+DQN_GAMMA_COLORS = {0.9: "#d95f02", 0.95: "#e7298a", 0.99: "#66a61e"}
+A2C_GAMMA_COLORS = {0.9: "#1b9e77", 0.95: "#7570b3", 0.99: "#e6ab02"}
+RDQN_GAMMA_COLORS = {0.9: "#a6761d", 0.95: "#666666", 0.99: "#1b9e77"}
+
+dqn_gamma_results = {}
+a2c_gamma_results = {}
+rdqn_gamma_results = {}
+
+for gamma in DQN_GAMMAS:
+    gamma_str = str(gamma).replace('.', '_')
+    gamma_dir = os.path.join(RESULTS_DIR, f"results_dqn_gamma_{gamma_str}")
+    urllc_blocks_all, embb_blocks_all, urllc_sla_all, embb_sla_all = [], [], [], []
+    for run_id in range(1, NUM_RUNS + 1):
+        npz_file = os.path.join(gamma_dir, f"dqn_results_run_{run_id}_gamma_{gamma_str}.npz")
+        if os.path.exists(npz_file):
+            data = np.load(npz_file)
+            urllc_blocks_all.append(data['urllc_blocks'])
+            embb_blocks_all.append(data['embb_blocks'])
+            urllc_sla_all.append(data['urllc_sla'])
+            embb_sla_all.append(data['embb_sla'])
+    if urllc_blocks_all:
+        urllc_blocks_all = np.array(urllc_blocks_all)
+        embb_blocks_all = np.array(embb_blocks_all)
+        urllc_sla_all = np.array(urllc_sla_all)
+        embb_sla_all = np.array(embb_sla_all)
+        dqn_gamma_results[gamma] = {
+            "urllc_blocks_mean": np.mean(urllc_blocks_all, axis=0),
+            "urllc_blocks_std": np.std(urllc_blocks_all, axis=0),
+            "embb_blocks_mean": np.mean(embb_blocks_all, axis=0),
+            "embb_blocks_std": np.std(embb_blocks_all, axis=0),
+            "urllc_sla_mean": np.mean(urllc_sla_all, axis=0),
+            "urllc_sla_std": np.std(urllc_sla_all, axis=0),
+            "embb_sla_mean": np.mean(embb_sla_all, axis=0),
+            "embb_sla_std": np.std(embb_sla_all, axis=0),
+        }
+
+for gamma in A2C_GAMMAS:
+    gamma_str = str(gamma).replace('.', '_')
+    gamma_dir = os.path.join(RESULTS_DIR, f"results_a2c_gamma_{gamma_str}")
+    urllc_blocks_all, embb_blocks_all, urllc_sla_all, embb_sla_all = [], [], [], []
+    for run_id in range(1, NUM_RUNS + 1):
+        npz_file = os.path.join(gamma_dir, f"a2c_results_run_{run_id}_gamma_{gamma_str}.npz")
+        if os.path.exists(npz_file):
+            data = np.load(npz_file)
+            urllc_blocks_all.append(data['urllc_blocks'])
+            embb_blocks_all.append(data['embb_blocks'])
+            urllc_sla_all.append(data['urllc_sla'])
+            embb_sla_all.append(data['embb_sla'])
+    if urllc_blocks_all:
+        urllc_blocks_all = np.array(urllc_blocks_all)
+        embb_blocks_all = np.array(embb_blocks_all)
+        urllc_sla_all = np.array(urllc_sla_all)
+        embb_sla_all = np.array(embb_sla_all)
+        a2c_gamma_results[gamma] = {
+            "urllc_blocks_mean": np.mean(urllc_blocks_all, axis=0),
+            "urllc_blocks_std": np.std(urllc_blocks_all, axis=0),
+            "embb_blocks_mean": np.mean(embb_blocks_all, axis=0),
+            "embb_blocks_std": np.std(embb_blocks_all, axis=0),
+            "urllc_sla_mean": np.mean(urllc_sla_all, axis=0),
+            "urllc_sla_std": np.std(urllc_sla_all, axis=0),
+            "embb_sla_mean": np.mean(embb_sla_all, axis=0),
+            "embb_sla_std": np.std(embb_sla_all, axis=0),
+        }
+
+for gamma in RDQN_GAMMAS:
+    gamma_str = str(gamma).replace('.', '_')
+    gamma_dir = os.path.join(RESULTS_DIR, f"results_rdqn_gamma_{gamma_str}")
+    urllc_blocks_all, embb_blocks_all, urllc_sla_all, embb_sla_all = [], [], [], []
+    for run_id in range(1, NUM_RUNS + 1):
+        npz_file = os.path.join(gamma_dir, f"rdqn_results_run_{run_id}_gamma_{gamma_str}.npz")
+        if os.path.exists(npz_file):
+            data = np.load(npz_file)
+            urllc_blocks_all.append(data['urllc_blocks'])
+            embb_blocks_all.append(data['embb_blocks'])
+            urllc_sla_all.append(data['urllc_sla'])
+            embb_sla_all.append(data['embb_sla'])
+    if urllc_blocks_all:
+        urllc_blocks_all = np.array(urllc_blocks_all)
+        embb_blocks_all = np.array(embb_blocks_all)
+        urllc_sla_all = np.array(urllc_sla_all)
+        embb_sla_all = np.array(embb_sla_all)
+        rdqn_gamma_results[gamma] = {
+            "urllc_blocks_mean": np.mean(urllc_blocks_all, axis=0),
+            "urllc_blocks_std": np.std(urllc_blocks_all, axis=0),
+            "embb_blocks_mean": np.mean(embb_blocks_all, axis=0),
+            "embb_blocks_std": np.std(embb_blocks_all, axis=0),
+            "urllc_sla_mean": np.mean(urllc_sla_all, axis=0),
+            "urllc_sla_std": np.std(urllc_sla_all, axis=0),
+            "embb_sla_mean": np.mean(embb_sla_all, axis=0),
+            "embb_sla_std": np.std(embb_sla_all, axis=0),
+        }
+
+# ================================
+# Toggle Options for Plotting
+# ================================
+PLOT_A2C = False
+PLOT_DQN = False
+PLOT_DQN_GAMMAS = False
+PLOT_A2C_GAMMAS = False
+PLOT_RDQN = False
+PLOT_RANDOM = True
+PLOT_RDQN_GAMMAS = True
+
+# ================================
 # Plotting
 # ================================
 
 def plot_results():
     # Plot URLLC Blocks
     plt.figure(figsize=(6, 4))
-    dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_urllc_blocks, std_dqn_urllc_blocks)
-    a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c_urllc_blocks, std_a2c_urllc_blocks)
-    rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_urllc_blocks, std_rdqn_urllc_blocks)
-    random_mean, random_std = adjust_std_and_smooth(mean_random_urllc_blocks, std_random_urllc_blocks)
-
-    plt.plot(dqn_mean, label='DQN + SAC', color='#d95f02', linewidth=2)  # DQN
-    if SHOW_STD_DEV:
-        plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='#d95f02', alpha=0.1)
-    plt.plot(a2c_mean, label='A2C + SAC', color='#1b9e77', linewidth=2)  # A2C
-    if SHOW_STD_DEV:
-        plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='#1b9e77', alpha=0.1)
-    plt.plot(rdqn_mean, label='Rainbow + SAC', color='#7570b3', linewidth=2)  # Rainbow
-    if SHOW_STD_DEV:
-        plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='#7570b3', alpha=0.1)
-    plt.plot(random_mean, label='SAC', color='gray', linestyle='--', linewidth=2)  # SAC
-    if SHOW_STD_DEV:
-        plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='gray', alpha=0.1)
-
-    plt.xlim(0, max_length)  # Set x-axis limit to max_length
+    # Overlay DQN gamma curves
+    if PLOT_DQN_GAMMAS:
+        for gamma in DQN_GAMMAS:
+            if gamma in dqn_gamma_results:
+                mean, std = adjust_std_and_smooth(dqn_gamma_results[gamma]["urllc_blocks_mean"], dqn_gamma_results[gamma]["urllc_blocks_std"])
+                plt.plot(mean, label=DQN_GAMMA_LABELS[gamma], color=DQN_GAMMA_COLORS[gamma], linewidth=2)
+                if SHOW_STD_DEV:
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=DQN_GAMMA_COLORS[gamma], alpha=0.1)
+    # Overlay A2C gamma curves
+    if PLOT_A2C_GAMMAS:
+        for gamma in A2C_GAMMAS:
+            if gamma in a2c_gamma_results:
+                mean, std = adjust_std_and_smooth(a2c_gamma_results[gamma]["urllc_blocks_mean"], a2c_gamma_results[gamma]["urllc_blocks_std"])
+                plt.plot(mean, label=A2C_GAMMA_LABELS[gamma], color=A2C_GAMMA_COLORS[gamma], linewidth=2)
+                if SHOW_STD_DEV:
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=A2C_GAMMA_COLORS[gamma], alpha=0.1)
+    # Overlay RDQN gamma curves
+    if PLOT_RDQN_GAMMAS:
+        for gamma in RDQN_GAMMAS:
+            if gamma in rdqn_gamma_results:
+                mean, std = adjust_std_and_smooth(rdqn_gamma_results[gamma]["urllc_blocks_mean"], rdqn_gamma_results[gamma]["urllc_blocks_std"])
+                plt.plot(mean, label=RDQN_GAMMA_LABELS[gamma], color=RDQN_GAMMA_COLORS[gamma], linewidth=2)
+                if SHOW_STD_DEV:
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=RDQN_GAMMA_COLORS[gamma], alpha=0.1)
+    if PLOT_DQN:
+        dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_urllc_blocks, std_dqn_urllc_blocks)
+        plt.plot(dqn_mean, label='DQN + SAC', color='#d95f02', linewidth=2)
+        if SHOW_STD_DEV:
+            plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='#d95f02', alpha=0.1)
+    if PLOT_A2C:
+        a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c_urllc_blocks, std_a2c_urllc_blocks)
+        plt.plot(a2c_mean, label='A2C + SAC', color='#1b9e77', linewidth=2)
+        if SHOW_STD_DEV:
+            plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='#1b9e77', alpha=0.1)
+    if PLOT_RDQN:
+        rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_urllc_blocks, std_rdqn_urllc_blocks)
+        plt.plot(rdqn_mean, label='Rainbow + SAC', color='#7570b3', linewidth=2)
+        if SHOW_STD_DEV:
+            plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='#7570b3', alpha=0.1)
+    if PLOT_RANDOM:
+        random_mean, random_std = adjust_std_and_smooth(mean_random_urllc_blocks, std_random_urllc_blocks)
+        plt.plot(random_mean, label='SAC', color='gray', linestyle='--', linewidth=2)
+        if SHOW_STD_DEV:
+            plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='gray', alpha=0.1)
+    plt.xlim(0, max_length)
     plt.title("URLLC Block Rate")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Requests Blocked")
@@ -230,25 +369,48 @@ def plot_results():
 
     # Plot URLLC SLA
     plt.figure(figsize=(6, 4))
-    dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_urllc_sla, std_dqn_urllc_sla)
-    a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c_urllc_sla, std_a2c_urllc_sla)
-    rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_urllc_sla, std_rdqn_urllc_sla)
-    random_mean, random_std = adjust_std_and_smooth(mean_random_urllc_sla, std_random_urllc_sla)
-
-    plt.plot(dqn_mean, label='DQN + SAC', color='#d95f02', linewidth=2)  # DQN
-    if SHOW_STD_DEV:
-        plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='#d95f02', alpha=0.1)
-    plt.plot(a2c_mean, label='A2C + SAC', color='#1b9e77', linewidth=2)  # A2C
-    if SHOW_STD_DEV:
-        plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='#1b9e77', alpha=0.1)
-    plt.plot(rdqn_mean, label='Rainbow + SAC', color='#7570b3', linewidth=2)  # Rainbow
-    if SHOW_STD_DEV:
-        plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='#7570b3', alpha=0.1)
-    plt.plot(random_mean, label='SAC', color='gray', linestyle='--', linewidth=2)  # SAC
-    if SHOW_STD_DEV:
-        plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='gray', alpha=0.1)
-
-    plt.xlim(0, max_length)  # Set x-axis limit to max_length
+    if PLOT_DQN_GAMMAS:
+        for gamma in DQN_GAMMAS:
+            if gamma in dqn_gamma_results:
+                mean, std = adjust_std_and_smooth(dqn_gamma_results[gamma]["urllc_sla_mean"], dqn_gamma_results[gamma]["urllc_sla_std"])
+                plt.plot(mean, label=DQN_GAMMA_LABELS[gamma], color=DQN_GAMMA_COLORS[gamma], linewidth=2)
+                if SHOW_STD_DEV:
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=DQN_GAMMA_COLORS[gamma], alpha=0.1)
+    if PLOT_A2C_GAMMAS:
+        for gamma in A2C_GAMMAS:
+            if gamma in a2c_gamma_results:
+                mean, std = adjust_std_and_smooth(a2c_gamma_results[gamma]["urllc_sla_mean"], a2c_gamma_results[gamma]["urllc_sla_std"])
+                plt.plot(mean, label=A2C_GAMMA_LABELS[gamma], color=A2C_GAMMA_COLORS[gamma], linewidth=2)
+                if SHOW_STD_DEV:
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=A2C_GAMMA_COLORS[gamma], alpha=0.1)
+    if PLOT_RDQN_GAMMAS:
+        for gamma in RDQN_GAMMAS:
+            if gamma in rdqn_gamma_results:
+                mean, std = adjust_std_and_smooth(rdqn_gamma_results[gamma]["urllc_sla_mean"], rdqn_gamma_results[gamma]["urllc_sla_std"])
+                plt.plot(mean, label=RDQN_GAMMA_LABELS[gamma], color=RDQN_GAMMA_COLORS[gamma], linewidth=2)
+                if SHOW_STD_DEV:
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=RDQN_GAMMA_COLORS[gamma], alpha=0.1)
+    if PLOT_DQN:
+        dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_urllc_sla, std_dqn_urllc_sla)
+        plt.plot(dqn_mean, label='DQN + SAC', color='#d95f02', linewidth=2)
+        if SHOW_STD_DEV:
+            plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='#d95f02', alpha=0.1)
+    if PLOT_A2C:
+        a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c_urllc_sla, std_a2c_urllc_sla)
+        plt.plot(a2c_mean, label='A2C + SAC', color='#1b9e77', linewidth=2)
+        if SHOW_STD_DEV:
+            plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='#1b9e77', alpha=0.1)
+    if PLOT_RDQN:
+        rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_urllc_sla, std_rdqn_urllc_sla)
+        plt.plot(rdqn_mean, label='Rainbow + SAC', color='#7570b3', linewidth=2)
+        if SHOW_STD_DEV:
+            plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='#7570b3', alpha=0.1)
+    if PLOT_RANDOM:
+        random_mean, random_std = adjust_std_and_smooth(mean_random_urllc_sla, std_random_urllc_sla)
+        plt.plot(random_mean, label='SAC', color='gray', linestyle='--', linewidth=2)
+        if SHOW_STD_DEV:
+            plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='gray', alpha=0.1)
+    plt.xlim(0, max_length)
     plt.title("URLLC SLA Satisfaction Rate")
     plt.xlabel("Number of Episodes")
     plt.ylabel("SLA Satisfaction (%)")
@@ -260,25 +422,48 @@ def plot_results():
 
     # Plot eMBB Blocks
     plt.figure(figsize=(6, 4))
-    dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_embb_blocks, std_dqn_embb_blocks)
-    a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c_embb_blocks, std_a2c_embb_blocks)
-    rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_embb_blocks, std_rdqn_embb_blocks)
-    random_mean, random_std = adjust_std_and_smooth(mean_random_embb_blocks, std_random_embb_blocks)
-
-    plt.plot(dqn_mean, label='DQN + SAC', color='#d95f02', linewidth=2)  # DQN
-    if SHOW_STD_DEV:
-        plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='#d95f02', alpha=0.1)
-    plt.plot(a2c_mean, label='A2C + SAC', color='#1b9e77', linewidth=2)  # A2C
-    if SHOW_STD_DEV:
-        plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='#1b9e77', alpha=0.1)
-    plt.plot(rdqn_mean, label='Rainbow + SAC', color='#7570b3', linewidth=2)  # Rainbow
-    if SHOW_STD_DEV:
-        plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='#7570b3', alpha=0.1)
-    plt.plot(random_mean, label='SAC', color='gray', linestyle='--', linewidth=2)  # SAC
-    if SHOW_STD_DEV:
-        plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='gray', alpha=0.1)
-
-    plt.xlim(0, max_length)  # Set x-axis limit to max_length
+    if PLOT_DQN_GAMMAS:
+        for gamma in DQN_GAMMAS:
+            if gamma in dqn_gamma_results:
+                mean, std = adjust_std_and_smooth(dqn_gamma_results[gamma]["embb_blocks_mean"], dqn_gamma_results[gamma]["embb_blocks_std"])
+                plt.plot(mean, label=DQN_GAMMA_LABELS[gamma], color=DQN_GAMMA_COLORS[gamma], linewidth=2)
+                if SHOW_STD_DEV:
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=DQN_GAMMA_COLORS[gamma], alpha=0.1)
+    if PLOT_A2C_GAMMAS:
+        for gamma in A2C_GAMMAS:
+            if gamma in a2c_gamma_results:
+                mean, std = adjust_std_and_smooth(a2c_gamma_results[gamma]["embb_blocks_mean"], a2c_gamma_results[gamma]["embb_blocks_std"])
+                plt.plot(mean, label=A2C_GAMMA_LABELS[gamma], color=A2C_GAMMA_COLORS[gamma], linewidth=2)
+                if SHOW_STD_DEV:
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=A2C_GAMMA_COLORS[gamma], alpha=0.1)
+    if PLOT_RDQN_GAMMAS:
+        for gamma in RDQN_GAMMAS:
+            if gamma in rdqn_gamma_results:
+                mean, std = adjust_std_and_smooth(rdqn_gamma_results[gamma]["embb_blocks_mean"], rdqn_gamma_results[gamma]["embb_blocks_std"])
+                plt.plot(mean, label=RDQN_GAMMA_LABELS[gamma], color=RDQN_GAMMA_COLORS[gamma], linewidth=2)
+                if SHOW_STD_DEV:
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=RDQN_GAMMA_COLORS[gamma], alpha=0.1)
+    if PLOT_DQN:
+        dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_embb_blocks, std_dqn_embb_blocks)
+        plt.plot(dqn_mean, label='DQN + SAC', color='#d95f02', linewidth=2)
+        if SHOW_STD_DEV:
+            plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='#d95f02', alpha=0.1)
+    if PLOT_A2C:
+        a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c_embb_blocks, std_a2c_embb_blocks)
+        plt.plot(a2c_mean, label='A2C + SAC', color='#1b9e77', linewidth=2)
+        if SHOW_STD_DEV:
+            plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='#1b9e77', alpha=0.1)
+    if PLOT_RDQN:
+        rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_embb_blocks, std_rdqn_embb_blocks)
+        plt.plot(rdqn_mean, label='Rainbow + SAC', color='#7570b3', linewidth=2)
+        if SHOW_STD_DEV:
+            plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='#7570b3', alpha=0.1)
+    if PLOT_RANDOM:
+        random_mean, random_std = adjust_std_and_smooth(mean_random_embb_blocks, std_random_embb_blocks)
+        plt.plot(random_mean, label='SAC', color='gray', linestyle='--', linewidth=2)
+        if SHOW_STD_DEV:
+            plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='gray', alpha=0.1)
+    plt.xlim(0, max_length)
     plt.title("eMBB Block Rate")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Requests Blocked")
@@ -290,25 +475,48 @@ def plot_results():
 
     # Plot eMBB SLA
     plt.figure(figsize=(6, 4))
-    dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_embb_sla, std_dqn_embb_sla)
-    a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c_embb_sla, std_a2c_embb_sla)
-    rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_embb_sla, std_rdqn_embb_sla)
-    random_mean, random_std = adjust_std_and_smooth(mean_random_embb_sla, std_random_embb_sla)
-
-    plt.plot(dqn_mean, label='DQN + SAC', color='#d95f02', linewidth=2)  # DQN
-    if SHOW_STD_DEV:
-        plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='#d95f02', alpha=0.1)
-    plt.plot(a2c_mean, label='A2C + SAC', color='#1b9e77', linewidth=2)  # A2C
-    if SHOW_STD_DEV:
-        plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='#1b9e77', alpha=0.1)
-    plt.plot(rdqn_mean, label='Rainbow + SAC', color='#7570b3', linewidth=2)  # Rainbow
-    if SHOW_STD_DEV:
-        plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='#7570b3', alpha=0.1)
-    plt.plot(random_mean, label='SAC', color='gray', linestyle='--', linewidth=2)  # SAC
-    if SHOW_STD_DEV:
-        plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='gray', alpha=0.1)
-
-    plt.xlim(0, max_length)  # Set x-axis limit to max_length
+    if PLOT_DQN_GAMMAS:
+        for gamma in DQN_GAMMAS:
+            if gamma in dqn_gamma_results:
+                mean, std = adjust_std_and_smooth(dqn_gamma_results[gamma]["embb_sla_mean"], dqn_gamma_results[gamma]["embb_sla_std"])
+                plt.plot(mean, label=DQN_GAMMA_LABELS[gamma], color=DQN_GAMMA_COLORS[gamma], linewidth=2)
+                if SHOW_STD_DEV:
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=DQN_GAMMA_COLORS[gamma], alpha=0.1)
+    if PLOT_A2C_GAMMAS:
+        for gamma in A2C_GAMMAS:
+            if gamma in a2c_gamma_results:
+                mean, std = adjust_std_and_smooth(a2c_gamma_results[gamma]["embb_sla_mean"], a2c_gamma_results[gamma]["embb_sla_std"])
+                plt.plot(mean, label=A2C_GAMMA_LABELS[gamma], color=A2C_GAMMA_COLORS[gamma], linewidth=2)
+                if SHOW_STD_DEV:
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=A2C_GAMMA_COLORS[gamma], alpha=0.1)
+    if PLOT_RDQN_GAMMAS:
+        for gamma in RDQN_GAMMAS:
+            if gamma in rdqn_gamma_results:
+                mean, std = adjust_std_and_smooth(rdqn_gamma_results[gamma]["embb_sla_mean"], rdqn_gamma_results[gamma]["embb_sla_std"])
+                plt.plot(mean, label=RDQN_GAMMA_LABELS[gamma], color=RDQN_GAMMA_COLORS[gamma], linewidth=2)
+                if SHOW_STD_DEV:
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=RDQN_GAMMA_COLORS[gamma], alpha=0.1)
+    if PLOT_DQN:
+        dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_embb_sla, std_dqn_embb_sla)
+        plt.plot(dqn_mean, label='DQN + SAC', color='#d95f02', linewidth=2)
+        if SHOW_STD_DEV:
+            plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='#d95f02', alpha=0.1)
+    if PLOT_A2C:
+        a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c_embb_sla, std_a2c_embb_sla)
+        plt.plot(a2c_mean, label='A2C + SAC', color='#1b9e77', linewidth=2)
+        if SHOW_STD_DEV:
+            plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='#1b9e77', alpha=0.1)
+    if PLOT_RDQN:
+        rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_embb_sla, std_rdqn_embb_sla)
+        plt.plot(rdqn_mean, label='Rainbow + SAC', color='#7570b3', linewidth=2)
+        if SHOW_STD_DEV:
+            plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='#7570b3', alpha=0.1)
+    if PLOT_RANDOM:
+        random_mean, random_std = adjust_std_and_smooth(mean_random_embb_sla, std_random_embb_sla)
+        plt.plot(random_mean, label='SAC', color='gray', linestyle='--', linewidth=2)
+        if SHOW_STD_DEV:
+            plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='gray', alpha=0.1)
+    plt.xlim(0, max_length)
     plt.title("eMBB SLA Satisfaction Rate")
     plt.xlabel("Number of Episodes")
     plt.ylabel("SLA Satisfaction (%)")

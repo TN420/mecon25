@@ -22,7 +22,7 @@ EMBB_QUOTA = 70
 
 TRAFFIC_TYPES = ['URLLC', 'eMBB']
 
-GAMMA = 0.95
+GAMMA = 0.95  # Default, but will be overridden in main loop
 LR = 0.001
 BATCH_SIZE = 16
 MEMORY_SIZE = 5000
@@ -211,7 +211,7 @@ class PrioritizedReplayBuffer:
 # Training Loop
 # ================================
 
-def train_dqn(episodes=EPISODES, run_id=1):
+def train_dqn(episodes=EPISODES, run_id=1, gamma=GAMMA):
     start_time = time.time()  # Start timing
     env = RANEnv()
     state_size = len(env.reset())
@@ -275,7 +275,7 @@ def train_dqn(episodes=EPISODES, run_id=1):
 
                 q_values = policy_net(s).gather(1, a.unsqueeze(1)).squeeze()
                 next_q_values = target_net(ns).max(1)[0].detach()
-                expected_q = r + GAMMA * next_q_values
+                expected_q = r + gamma * next_q_values
 
                 td_errors = expected_q - q_values
                 loss = (td_errors.pow(2) * weights).mean()
@@ -301,15 +301,17 @@ def train_dqn(episodes=EPISODES, run_id=1):
     elapsed_time = time.time() - start_time  # End timing
     print(f"RDQN Training Time for Run {run_id}: {elapsed_time:.2f} seconds")
 
-    # Save training time to an RDQN-specific CSV file
-    with open("training_times_rdqn.csv", mode="a", newline="") as file:
+    # Save training time to an RDQN-specific CSV file (gamma in filename)
+    gamma_str = str(gamma).replace('.', '_')
+    times_csv = f"training_times_rdqn_gamma_{gamma_str}.csv"
+    with open(times_csv, mode="a", newline="") as file:
         writer = csv.writer(file)
-        if file.tell() == 0:  # Add headers if the file is empty
+        if file.tell() == 0:
             writer.writerow(["Run_ID", "Training_Time", "Gamma", "Learning_Rate", "Batch_Size", "Memory_Size", "Alpha", "Beta_Start"])
-        writer.writerow([run_id, elapsed_time, GAMMA, LR, BATCH_SIZE, MEMORY_SIZE, ALPHA, BETA_START])
+        writer.writerow([run_id, elapsed_time, gamma, LR, BATCH_SIZE, MEMORY_SIZE, ALPHA, BETA_START])
 
-    os.makedirs("results/results_rdqn", exist_ok=True)
-    np.savez(f"results/results_rdqn/rdqn_results_run_{run_id}.npz",
+    os.makedirs(f"results/results_rdqn_gamma_{gamma_str}", exist_ok=True)
+    np.savez(f"results/results_rdqn_gamma_{gamma_str}/rdqn_results_run_{run_id}_gamma_{gamma_str}.npz",
              rewards=reward_history,
              urllc_blocks=urllc_block_history,
              embb_blocks=embb_block_history,
@@ -317,21 +319,24 @@ def train_dqn(episodes=EPISODES, run_id=1):
              embb_sla=embb_sla_pres)
 
 if __name__ == "__main__":
-    for run_id in range(1, 6):  # Run [X] simulations with different IDs
-        train_dqn(episodes=EPISODES, run_id=run_id)
+    gamma_values = [0.9, GAMMA, 0.99]
+    for gamma in gamma_values:
+        for run_id in range(1, 31):
+            train_dqn(episodes=EPISODES, run_id=run_id, gamma=gamma)
 
-    # Calculate averages
-    rdqn_times = []
-    if os.path.exists("training_times_rdqn.csv"):
-        with open("training_times_rdqn.csv", mode="r") as file:
-            reader = csv.reader(file)
-            for row in reader:
-                if row[0].isdigit():  # Only consider rows with run IDs
-                    rdqn_times.append(float(row[1]))
-
-    average_time = np.mean(rdqn_times) if rdqn_times else 0
-    with open("training_times_rdqn.csv", mode="a", newline="") as file:
-        writer = csv.writer(file)
-        if file.tell() == 0:  # Add headers if the file is empty
-            writer.writerow(["Run_ID", "Training_Time", "Gamma", "Learning_Rate", "Batch_Size", "Memory_Size", "Alpha", "Beta_Start"])
-        writer.writerow(["Average", average_time, GAMMA, LR, BATCH_SIZE, MEMORY_SIZE, ALPHA, BETA_START])
+        # Calculate averages for each gamma
+        gamma_str = str(gamma).replace('.', '_')
+        rdqn_times = []
+        times_csv = f"training_times_rdqn_gamma_{gamma_str}.csv"
+        if os.path.exists(times_csv):
+            with open(times_csv, mode="r") as file:
+                reader = csv.reader(file)
+                for row in reader:
+                    if row[0].isdigit():
+                        rdqn_times.append(float(row[1]))
+        average_time = np.mean(rdqn_times) if rdqn_times else 0
+        with open(times_csv, mode="a", newline="") as file:
+            writer = csv.writer(file)
+            if file.tell() == 0:
+                writer.writerow(["Run_ID", "Training_Time", "Gamma", "Learning_Rate", "Batch_Size", "Memory_Size", "Alpha", "Beta_Start"])
+            writer.writerow(["Average", average_time, gamma, LR, BATCH_SIZE, MEMORY_SIZE, ALPHA, BETA_START])

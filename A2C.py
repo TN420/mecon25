@@ -25,7 +25,7 @@ EMBB_QUOTA = 70
 TRAFFIC_TYPES = ['URLLC', 'eMBB']
 
 # A2C Hyperparameters
-GAMMA = 0.95
+GAMMA = 0.95  # Default, but will be overridden in main loop
 LR = 0.001
 EPISODES = 300
 STEPS_PER_EPISODE = 50
@@ -123,13 +123,14 @@ class Critic(nn.Module):
 # Results Saving Function
 # ================================
 
-def save_results(run_id, rewards, urllc_blocks, embb_blocks, urllc_sla, embb_sla):
+def save_results(run_id, rewards, urllc_blocks, embb_blocks, urllc_sla, embb_sla, gamma):
     # Ensure the results folder exists
-    results_dir = "results/results_a2c"
+    gamma_str = str(gamma).replace('.', '_')
+    results_dir = f"results/results_a2c_gamma_{gamma_str}"
     os.makedirs(results_dir, exist_ok=True)
     
     # Save results with a unique run ID to avoid overwriting
-    np.savez(os.path.join(results_dir, f"a2c_results_run_{run_id}.npz"), 
+    np.savez(os.path.join(results_dir, f"a2c_results_run_{run_id}_gamma_{gamma_str}.npz"), 
              rewards=rewards, 
              urllc_blocks=urllc_blocks, 
              embb_blocks=embb_blocks, 
@@ -140,7 +141,7 @@ def save_results(run_id, rewards, urllc_blocks, embb_blocks, urllc_sla, embb_sla
 # Training Loop
 # ================================
 
-def train_a2c(episodes=EPISODES, run_id=1):
+def train_a2c(episodes=EPISODES, run_id=1, gamma=GAMMA):
     start_time = time.time()  # Start timing
     env = RANEnv()
     state_size = len(env.reset())
@@ -192,7 +193,7 @@ def train_a2c(episodes=EPISODES, run_id=1):
 
             state_value = critic(state_tensor)
             next_state_value = critic(torch.tensor(next_state).float().unsqueeze(0))
-            advantage = reward + GAMMA * next_state_value - state_value
+            advantage = reward + gamma * next_state_value - state_value
 
             actor_loss = -torch.log(action_probs.squeeze(0)[action]) * advantage.detach()
             critic_loss = advantage.pow(2)
@@ -220,15 +221,24 @@ def train_a2c(episodes=EPISODES, run_id=1):
     elapsed_time = time.time() - start_time  # End timing
     print(f"A2C Training Time for Run {run_id}: {elapsed_time:.2f} seconds")
 
-    # Save training time to an A2C-specific CSV file
-    with open("training_times_a2c.csv", mode="a", newline="") as file:
+    # Save training time to an A2C-specific CSV file (gamma in filename)
+    gamma_str = str(gamma).replace('.', '_')
+    times_csv = f"training_times_a2c_gamma_{gamma_str}.csv"
+    with open(times_csv, mode="a", newline="") as file:
         writer = csv.writer(file)
-        if file.tell() == 0:  # Add headers if the file is empty
+        if file.tell() == 0:
             writer.writerow(["Run_ID", "Training_Time", "Gamma", "Learning_Rate"])
-        writer.writerow([run_id, elapsed_time, GAMMA, LR])
+        writer.writerow([run_id, elapsed_time, gamma, LR])
 
-    # Save results for the current run with a unique ID
-    save_results(run_id, reward_history, urllc_block_history, embb_block_history, urllc_sla_pres, embb_sla_pres)
+    # Save results for the current run with a unique ID in gamma-specific folder
+    results_dir = f"results/results_a2c_gamma_{gamma_str}"
+    os.makedirs(results_dir, exist_ok=True)
+    np.savez(os.path.join(results_dir, f"a2c_results_run_{run_id}_gamma_{gamma_str}.npz"),
+             rewards=reward_history,
+             urllc_blocks=urllc_block_history,
+             embb_blocks=embb_block_history,
+             urllc_sla=urllc_sla_pres,
+             embb_sla=embb_sla_pres)
 
     # Plot losses
   #  plt.figure(figsize=(10, 5))
@@ -249,21 +259,24 @@ def train_a2c(episodes=EPISODES, run_id=1):
 # ================================
 
 if __name__ == "__main__":
-    for run_id in range(1, 6):  # Run [X] simulations with different IDs
-        train_a2c(episodes=EPISODES, run_id=run_id)
+    gamma_values = [0.9, GAMMA, 0.99]
+    for gamma in gamma_values:
+        for run_id in range(1, 31):
+            train_a2c(episodes=EPISODES, run_id=run_id, gamma=gamma)
 
-    # Calculate averages
-    a2c_times = []
-    if os.path.exists("training_times_a2c.csv"):
-        with open("training_times_a2c.csv", mode="r") as file:
-            reader = csv.reader(file)
-            for row in reader:
-                if row[0].isdigit():  # Only consider rows with run IDs
-                    a2c_times.append(float(row[1]))
-
-    average_time = np.mean(a2c_times) if a2c_times else 0
-    with open("training_times_a2c.csv", mode="a", newline="") as file:
-        writer = csv.writer(file)
-        if file.tell() == 0:  # Add headers if the file is empty
-            writer.writerow(["Run_ID", "Training_Time", "Gamma", "Learning_Rate"])
-        writer.writerow(["Average", average_time, GAMMA, LR])
+        # Calculate averages for each gamma
+        gamma_str = str(gamma).replace('.', '_')
+        a2c_times = []
+        times_csv = f"training_times_a2c_gamma_{gamma_str}.csv"
+        if os.path.exists(times_csv):
+            with open(times_csv, mode="r") as file:
+                reader = csv.reader(file)
+                for row in reader:
+                    if row[0].isdigit():
+                        a2c_times.append(float(row[1]))
+        average_time = np.mean(a2c_times) if a2c_times else 0
+        with open(times_csv, mode="a", newline="") as file:
+            writer = csv.writer(file)
+            if file.tell() == 0:
+                writer.writerow(["Run_ID", "Training_Time", "Gamma", "Learning_Rate"])
+            writer.writerow(["Average", average_time, gamma, LR])

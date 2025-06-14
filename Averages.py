@@ -54,6 +54,34 @@ def load_training_data(csv_file_path):
     return averages
 
 if __name__ == "__main__":
+    gamma_values = [0.9, 0.95, 0.99]
+    methods = ["A2C", "DQN", "RDQN"]
+    base_dirs = {
+        "A2C": "/home/w5/pydemo/mecon25/results/results_a2c_gamma_{}",
+        "DQN": "/home/w5/pydemo/mecon25/results/results_dqn_gamma_{}",
+        "RDQN": "/home/w5/pydemo/mecon25/results/results_rdqn_gamma_{}"
+    }
+
+    csv_file_path = "/home/w5/pydemo/mecon25/averages_gammas.csv"
+    file_exists = os.path.isfile(csv_file_path)
+    with open(csv_file_path, mode="w", newline="") as csv_file:
+        csv_writer = csv.writer(csv_file)
+        # Write header
+        csv_writer.writerow(["Method", "Gamma", "embb_sla_avg", "urllc_sla_avg"])
+        for method in methods:
+            for gamma in gamma_values:
+                gamma_str = str(gamma).replace('.', '_')
+                dir_path = base_dirs[method].format(gamma_str)
+                if os.path.exists(dir_path):
+                    avgs = compute_averages_from_npz(dir_path)
+                    csv_writer.writerow([
+                        method,
+                        gamma,
+                        f"{avgs['embb_sla']:.3f}",
+                        f"{avgs['urllc_sla']:.3f}"
+                    ])
+    print(f"Averages for all gammas and methods written to {csv_file_path}")
+
     # Paths to the directories containing .npz files for each method
     directories = {
         "A2C": "/home/w5/pydemo/mecon25/results/results_a2c",

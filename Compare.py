@@ -8,7 +8,7 @@ import os
 # Configuration
 # ================================
 
-NUM_RUNS = 5  # Number of runs you performed
+NUM_RUNS = 30  # Number of runs you performed
 
 RESULTS_DIR = "/home/w5/pydemo/mecon25/results"
 
@@ -203,9 +203,9 @@ RDQN_GAMMAS = [0.9, 0.95, 0.99]
 DQN_GAMMA_LABELS = {0.9: "DQN γ=0.9", 0.95: "DQN γ=0.95", 0.99: "DQN γ=0.99"}
 A2C_GAMMA_LABELS = {0.9: "A2C γ=0.9", 0.95: "A2C γ=0.95", 0.99: "A2C γ=0.99"}
 RDQN_GAMMA_LABELS = {0.9: "RDQN γ=0.9", 0.95: "RDQN γ=0.95", 0.99: "RDQN γ=0.99"}
-DQN_GAMMA_COLORS = {0.9: "#d95f02", 0.95: "#e7298a", 0.99: "#66a61e"}
-A2C_GAMMA_COLORS = {0.9: "#1b9e77", 0.95: "#7570b3", 0.99: "#e6ab02"}
-RDQN_GAMMA_COLORS = {0.9: "#a6761d", 0.95: "#666666", 0.99: "#1b9e77"}
+DQN_GAMMA_COLORS = {0.9: "#f6b700", 0.95: "#e36e00", 0.99: "#e30000"}
+A2C_GAMMA_COLORS = {0.9: "#9eff00", 0.95: "#0cc400", 0.99: "#0a9c00"}
+RDQN_GAMMA_COLORS = {0.9: "#e573ff", 0.95: "#9100e4", 0.99: "#5f0075"}
 
 dqn_gamma_results = {}
 a2c_gamma_results = {}
@@ -301,9 +301,9 @@ for gamma in RDQN_GAMMAS:
 PLOT_A2C = False
 PLOT_DQN = False
 PLOT_RDQN = False
-PLOT_A2C_GAMMAS = False
+PLOT_A2C_GAMMAS = True
 PLOT_DQN_GAMMAS = True
-PLOT_RDQN_GAMMAS = False
+PLOT_RDQN_GAMMAS = True
 PLOT_RANDOM = False
 
 # ================================

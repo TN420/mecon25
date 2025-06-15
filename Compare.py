@@ -299,47 +299,148 @@ for gamma in RDQN_GAMMAS:
         }
 
 # ================================
+# Learning Rate Overlay Setup
+# ================================
+
+LR_VALUES = [0.0005, 0.001, 0.0015]
+LR_LABELS = {0.0005: "LR=0.0005", 0.001: "LR=0.001", 0.0015: "LR=0.0015"}
+LR_COLORS = {0.0005: "#1f77b4", 0.001: "#ff7f0e", 0.0015: "#2ca02c"}
+LR_MARKERS = {0.0005: "^", 0.001: "x", 0.0015: "o"}
+
+dqn_lr_results = {}
+a2c_lr_results = {}
+rdqn_lr_results = {}
+
+for lr in LR_VALUES:
+    lr_str = str(lr).replace('.', '_')
+    # DQN
+    dqn_dir = os.path.join(RESULTS_DIR, f"results_dqn_lr_{lr_str}")
+    urllc_blocks_all, embb_blocks_all, urllc_sla_all, embb_sla_all = [], [], [], []
+    for run_id in range(1, NUM_RUNS + 1):
+        npz_file = os.path.join(dqn_dir, f"dqn_results_run_{run_id}_lr_{lr_str}.npz")
+        if os.path.exists(npz_file):
+            data = np.load(npz_file)
+            urllc_blocks_all.append(data['urllc_blocks'])
+            embb_blocks_all.append(data['embb_blocks'])
+            urllc_sla_all.append(data['urllc_sla'])
+            embb_sla_all.append(data['embb_sla'])
+    if urllc_blocks_all:
+        urllc_blocks_all = np.array(urllc_blocks_all)
+        embb_blocks_all = np.array(embb_blocks_all)
+        urllc_sla_all = np.array(urllc_sla_all)
+        embb_sla_all = np.array(embb_sla_all)
+        dqn_lr_results[lr] = {
+            "urllc_blocks_mean": np.mean(urllc_blocks_all, axis=0),
+            "urllc_blocks_std": np.std(urllc_blocks_all, axis=0),
+            "embb_blocks_mean": np.mean(embb_blocks_all, axis=0),
+            "embb_blocks_std": np.std(embb_blocks_all, axis=0),
+            "urllc_sla_mean": np.mean(urllc_sla_all, axis=0),
+            "urllc_sla_std": np.std(urllc_sla_all, axis=0),
+            "embb_sla_mean": np.mean(embb_sla_all, axis=0),
+            "embb_sla_std": np.std(embb_sla_all, axis=0),
+        }
+    # A2C
+    a2c_dir = os.path.join(RESULTS_DIR, f"results_a2c_lr_{lr_str}")
+    urllc_blocks_all, embb_blocks_all, urllc_sla_all, embb_sla_all = [], [], [], []
+    for run_id in range(1, NUM_RUNS + 1):
+        npz_file = os.path.join(a2c_dir, f"a2c_results_run_{run_id}_lr_{lr_str}.npz")
+        if os.path.exists(npz_file):
+            data = np.load(npz_file)
+            urllc_blocks_all.append(data['urllc_blocks'])
+            embb_blocks_all.append(data['embb_blocks'])
+            urllc_sla_all.append(data['urllc_sla'])
+            embb_sla_all.append(data['embb_sla'])
+    if urllc_blocks_all:
+        urllc_blocks_all = np.array(urllc_blocks_all)
+        embb_blocks_all = np.array(embb_blocks_all)
+        urllc_sla_all = np.array(urllc_sla_all)
+        embb_sla_all = np.array(embb_sla_all)
+        a2c_lr_results[lr] = {
+            "urllc_blocks_mean": np.mean(urllc_blocks_all, axis=0),
+            "urllc_blocks_std": np.std(urllc_blocks_all, axis=0),
+            "embb_blocks_mean": np.mean(embb_blocks_all, axis=0),
+            "embb_blocks_std": np.std(embb_blocks_all, axis=0),
+            "urllc_sla_mean": np.mean(urllc_sla_all, axis=0),
+            "urllc_sla_std": np.std(urllc_sla_all, axis=0),
+            "embb_sla_mean": np.mean(embb_sla_all, axis=0),
+            "embb_sla_std": np.std(embb_sla_all, axis=0),
+        }
+    # RDQN
+    rdqn_dir = os.path.join(RESULTS_DIR, f"results_rdqn_lr_{lr_str}")
+    urllc_blocks_all, embb_blocks_all, urllc_sla_all, embb_sla_all = [], [], [], []
+    for run_id in range(1, NUM_RUNS + 1):
+        npz_file = os.path.join(rdqn_dir, f"rdqn_results_run_{run_id}_lr_{lr_str}.npz")
+        if os.path.exists(npz_file):
+            data = np.load(npz_file)
+            urllc_blocks_all.append(data['urllc_blocks'])
+            embb_blocks_all.append(data['embb_blocks'])
+            urllc_sla_all.append(data['urllc_sla'])
+            embb_sla_all.append(data['embb_sla'])
+    if urllc_blocks_all:
+        urllc_blocks_all = np.array(urllc_blocks_all)
+        embb_blocks_all = np.array(embb_blocks_all)
+        urllc_sla_all = np.array(urllc_sla_all)
+        embb_sla_all = np.array(embb_sla_all)
+        rdqn_lr_results[lr] = {
+            "urllc_blocks_mean": np.mean(urllc_blocks_all, axis=0),
+            "urllc_blocks_std": np.std(urllc_blocks_all, axis=0),
+            "embb_blocks_mean": np.mean(embb_blocks_all, axis=0),
+            "embb_blocks_std": np.std(embb_blocks_all, axis=0),
+            "urllc_sla_mean": np.mean(urllc_sla_all, axis=0),
+            "urllc_sla_std": np.std(urllc_sla_all, axis=0),
+            "embb_sla_mean": np.mean(embb_sla_all, axis=0),
+            "embb_sla_std": np.std(embb_sla_all, axis=0),
+        }
+
+# ================================
 # Toggle Options for Plotting
 # ================================
 PLOT_A2C = False
 PLOT_DQN = False
 PLOT_RDQN = False
-PLOT_A2C_GAMMAS = True
-PLOT_DQN_GAMMAS = True
-PLOT_RDQN_GAMMAS = True
+PLOT_A2C_GAMMAS = False
+PLOT_DQN_GAMMAS = False
+PLOT_RDQN_GAMMAS = False
+PLOT_A2C_LRS = True
+PLOT_DQN_LRS = True
+PLOT_RDQN_LRS = True
 PLOT_RANDOM = False
 
 # ================================
 # Plotting
 # ================================
 
+PLOTS_DIR = os.path.join(RESULTS_DIR, "plots")
+os.makedirs(PLOTS_DIR, exist_ok=True)
+print(f"Plots will be saved to: {PLOTS_DIR}")
+
 def plot_results():
     # Plot URLLC Blocks
     plt.figure(figsize=(6, 4))
-    # Overlay DQN gamma curves
-    if PLOT_DQN_GAMMAS:
-        for gamma in DQN_GAMMAS:
-            if gamma in dqn_gamma_results:
-                mean, std = adjust_std_and_smooth(dqn_gamma_results[gamma]["urllc_blocks_mean"], dqn_gamma_results[gamma]["urllc_blocks_std"])
-                plt.plot(mean, label=DQN_GAMMA_LABELS[gamma], color=DQN_GAMMA_COLORS[gamma], linewidth=2, marker=DQN_GAMMA_MARKERS[gamma], markevery=25)
+    # Overlay DQN LR curves
+    if PLOT_DQN_LRS:
+        for lr in LR_VALUES:
+            if lr in dqn_lr_results:
+                mean, std = adjust_std_and_smooth(dqn_lr_results[lr]["urllc_blocks_mean"], dqn_lr_results[lr]["urllc_blocks_std"])
+                plt.plot(mean, label=f"DQN {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=DQN_GAMMA_COLORS[gamma], alpha=0.1)
-    # Overlay A2C gamma curves
-    if PLOT_A2C_GAMMAS:
-        for gamma in A2C_GAMMAS:
-            if gamma in a2c_gamma_results:
-                mean, std = adjust_std_and_smooth(a2c_gamma_results[gamma]["urllc_blocks_mean"], a2c_gamma_results[gamma]["urllc_blocks_std"])
-                plt.plot(mean, label=A2C_GAMMA_LABELS[gamma], color=A2C_GAMMA_COLORS[gamma], linewidth=2, marker=A2C_GAMMA_MARKERS[gamma], markevery=25)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
+    # Overlay A2C LR curves
+    if PLOT_A2C_LRS:
+        for lr in LR_VALUES:
+            if lr in a2c_lr_results:
+                mean, std = adjust_std_and_smooth(a2c_lr_results[lr]["urllc_blocks_mean"], a2c_lr_results[lr]["urllc_blocks_std"])
+                plt.plot(mean, label=f"A2C {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=A2C_GAMMA_COLORS[gamma], alpha=0.1)
-    # Overlay RDQN gamma curves
-    if PLOT_RDQN_GAMMAS:
-        for gamma in RDQN_GAMMAS:
-            if gamma in rdqn_gamma_results:
-                mean, std = adjust_std_and_smooth(rdqn_gamma_results[gamma]["urllc_blocks_mean"], rdqn_gamma_results[gamma]["urllc_blocks_std"])
-                plt.plot(mean, label=RDQN_GAMMA_LABELS[gamma], color=RDQN_GAMMA_COLORS[gamma], linewidth=2, marker=RDQN_GAMMA_MARKERS[gamma], markevery=25)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
+    # Overlay RDQN LR curves
+    if PLOT_RDQN_LRS:
+        for lr in LR_VALUES:
+            if lr in rdqn_lr_results:
+                mean, std = adjust_std_and_smooth(rdqn_lr_results[lr]["urllc_blocks_mean"], rdqn_lr_results[lr]["urllc_blocks_std"])
+                plt.plot(mean, label=f"RDQN {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=RDQN_GAMMA_COLORS[gamma], alpha=0.1)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
     if PLOT_DQN:
         dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_urllc_blocks, std_dqn_urllc_blocks)
         plt.plot(dqn_mean, label='DQN + SAC', color='#d95f02', linewidth=2)
@@ -367,32 +468,34 @@ def plot_results():
     plt.yscale("linear")
     plt.legend()
     plt.tight_layout()
-    plt.savefig('URLLC_Blocks.png')
+    plot_path = os.path.join(PLOTS_DIR, 'URLLC_Blocks.png')
+    plt.savefig(plot_path)
+    print(f"Saved plot: {plot_path}")
     plt.close()
 
     # Plot URLLC SLA
     plt.figure(figsize=(6, 4))
-    if PLOT_DQN_GAMMAS:
-        for gamma in DQN_GAMMAS:
-            if gamma in dqn_gamma_results:
-                mean, std = adjust_std_and_smooth(dqn_gamma_results[gamma]["urllc_sla_mean"], dqn_gamma_results[gamma]["urllc_sla_std"])
-                plt.plot(mean, label=DQN_GAMMA_LABELS[gamma], color=DQN_GAMMA_COLORS[gamma], linewidth=2, marker=DQN_GAMMA_MARKERS[gamma], markevery=25)
+    if PLOT_DQN_LRS:
+        for lr in LR_VALUES:
+            if lr in dqn_lr_results:
+                mean, std = adjust_std_and_smooth(dqn_lr_results[lr]["urllc_sla_mean"], dqn_lr_results[lr]["urllc_sla_std"])
+                plt.plot(mean, label=f"DQN {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=DQN_GAMMA_COLORS[gamma], alpha=0.1)
-    if PLOT_A2C_GAMMAS:
-        for gamma in A2C_GAMMAS:
-            if gamma in a2c_gamma_results:
-                mean, std = adjust_std_and_smooth(a2c_gamma_results[gamma]["urllc_sla_mean"], a2c_gamma_results[gamma]["urllc_sla_std"])
-                plt.plot(mean, label=A2C_GAMMA_LABELS[gamma], color=A2C_GAMMA_COLORS[gamma], linewidth=2, marker=A2C_GAMMA_MARKERS[gamma], markevery=25)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
+    if PLOT_A2C_LRS:
+        for lr in LR_VALUES:
+            if lr in a2c_lr_results:
+                mean, std = adjust_std_and_smooth(a2c_lr_results[lr]["urllc_sla_mean"], a2c_lr_results[lr]["urllc_sla_std"])
+                plt.plot(mean, label=f"A2C {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=A2C_GAMMA_COLORS[gamma], alpha=0.1)
-    if PLOT_RDQN_GAMMAS:
-        for gamma in RDQN_GAMMAS:
-            if gamma in rdqn_gamma_results:
-                mean, std = adjust_std_and_smooth(rdqn_gamma_results[gamma]["urllc_sla_mean"], rdqn_gamma_results[gamma]["urllc_sla_std"])
-                plt.plot(mean, label=RDQN_GAMMA_LABELS[gamma], color=RDQN_GAMMA_COLORS[gamma], linewidth=2, marker=RDQN_GAMMA_MARKERS[gamma], markevery=25)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
+    if PLOT_RDQN_LRS:
+        for lr in LR_VALUES:
+            if lr in rdqn_lr_results:
+                mean, std = adjust_std_and_smooth(rdqn_lr_results[lr]["urllc_sla_mean"], rdqn_lr_results[lr]["urllc_sla_std"])
+                plt.plot(mean, label=f"RDQN {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=RDQN_GAMMA_COLORS[gamma], alpha=0.1)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
     if PLOT_DQN:
         dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_urllc_sla, std_dqn_urllc_sla)
         plt.plot(dqn_mean, label='DQN + SAC', color='#d95f02', linewidth=2)
@@ -420,32 +523,34 @@ def plot_results():
     plt.yscale("linear")
     plt.legend()
     plt.tight_layout()
-    plt.savefig('URLLC_SLA.png')
+    plot_path = os.path.join(PLOTS_DIR, 'URLLC_SLA.png')
+    plt.savefig(plot_path)
+    print(f"Saved plot: {plot_path}")
     plt.close()
 
     # Plot eMBB Blocks
     plt.figure(figsize=(6, 4))
-    if PLOT_DQN_GAMMAS:
-        for gamma in DQN_GAMMAS:
-            if gamma in dqn_gamma_results:
-                mean, std = adjust_std_and_smooth(dqn_gamma_results[gamma]["embb_blocks_mean"], dqn_gamma_results[gamma]["embb_blocks_std"])
-                plt.plot(mean, label=DQN_GAMMA_LABELS[gamma], color=DQN_GAMMA_COLORS[gamma], linewidth=2, marker=DQN_GAMMA_MARKERS[gamma], markevery=25)
+    if PLOT_DQN_LRS:
+        for lr in LR_VALUES:
+            if lr in dqn_lr_results:
+                mean, std = adjust_std_and_smooth(dqn_lr_results[lr]["embb_blocks_mean"], dqn_lr_results[lr]["embb_blocks_std"])
+                plt.plot(mean, label=f"DQN {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=DQN_GAMMA_COLORS[gamma], alpha=0.1)
-    if PLOT_A2C_GAMMAS:
-        for gamma in A2C_GAMMAS:
-            if gamma in a2c_gamma_results:
-                mean, std = adjust_std_and_smooth(a2c_gamma_results[gamma]["embb_blocks_mean"], a2c_gamma_results[gamma]["embb_blocks_std"])
-                plt.plot(mean, label=A2C_GAMMA_LABELS[gamma], color=A2C_GAMMA_COLORS[gamma], linewidth=2, marker=A2C_GAMMA_MARKERS[gamma], markevery=25)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
+    if PLOT_A2C_LRS:
+        for lr in LR_VALUES:
+            if lr in a2c_lr_results:
+                mean, std = adjust_std_and_smooth(a2c_lr_results[lr]["embb_blocks_mean"], a2c_lr_results[lr]["embb_blocks_std"])
+                plt.plot(mean, label=f"A2C {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=A2C_GAMMA_COLORS[gamma], alpha=0.1)
-    if PLOT_RDQN_GAMMAS:
-        for gamma in RDQN_GAMMAS:
-            if gamma in rdqn_gamma_results:
-                mean, std = adjust_std_and_smooth(rdqn_gamma_results[gamma]["embb_blocks_mean"], rdqn_gamma_results[gamma]["embb_blocks_std"])
-                plt.plot(mean, label=RDQN_GAMMA_LABELS[gamma], color=RDQN_GAMMA_COLORS[gamma], linewidth=2, marker=RDQN_GAMMA_MARKERS[gamma], markevery=25)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
+    if PLOT_RDQN_LRS:
+        for lr in LR_VALUES:
+            if lr in rdqn_lr_results:
+                mean, std = adjust_std_and_smooth(rdqn_lr_results[lr]["embb_blocks_mean"], rdqn_lr_results[lr]["embb_blocks_std"])
+                plt.plot(mean, label=f"RDQN {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=RDQN_GAMMA_COLORS[gamma], alpha=0.1)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
     if PLOT_DQN:
         dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_embb_blocks, std_dqn_embb_blocks)
         plt.plot(dqn_mean, label='DQN + SAC', color='#d95f02', linewidth=2)
@@ -473,32 +578,34 @@ def plot_results():
     plt.yscale("linear")
     plt.legend()
     plt.tight_layout()
-    plt.savefig('eMBB_Blocks.png')
+    plot_path = os.path.join(PLOTS_DIR, 'eMBB_Blocks.png')
+    plt.savefig(plot_path)
+    print(f"Saved plot: {plot_path}")
     plt.close()
 
     # Plot eMBB SLA
     plt.figure(figsize=(6, 4))
-    if PLOT_DQN_GAMMAS:
-        for gamma in DQN_GAMMAS:
-            if gamma in dqn_gamma_results:
-                mean, std = adjust_std_and_smooth(dqn_gamma_results[gamma]["embb_sla_mean"], dqn_gamma_results[gamma]["embb_sla_std"])
-                plt.plot(mean, label=DQN_GAMMA_LABELS[gamma], color=DQN_GAMMA_COLORS[gamma], linewidth=2, marker=DQN_GAMMA_MARKERS[gamma], markevery=25)
+    if PLOT_DQN_LRS:
+        for lr in LR_VALUES:
+            if lr in dqn_lr_results:
+                mean, std = adjust_std_and_smooth(dqn_lr_results[lr]["embb_sla_mean"], dqn_lr_results[lr]["embb_sla_std"])
+                plt.plot(mean, label=f"DQN {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=DQN_GAMMA_COLORS[gamma], alpha=0.1)
-    if PLOT_A2C_GAMMAS:
-        for gamma in A2C_GAMMAS:
-            if gamma in a2c_gamma_results:
-                mean, std = adjust_std_and_smooth(a2c_gamma_results[gamma]["embb_sla_mean"], a2c_gamma_results[gamma]["embb_sla_std"])
-                plt.plot(mean, label=A2C_GAMMA_LABELS[gamma], color=A2C_GAMMA_COLORS[gamma], linewidth=2, marker=A2C_GAMMA_MARKERS[gamma], markevery=25)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
+    if PLOT_A2C_LRS:
+        for lr in LR_VALUES:
+            if lr in a2c_lr_results:
+                mean, std = adjust_std_and_smooth(a2c_lr_results[lr]["embb_sla_mean"], a2c_lr_results[lr]["embb_sla_std"])
+                plt.plot(mean, label=f"A2C {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=A2C_GAMMA_COLORS[gamma], alpha=0.1)
-    if PLOT_RDQN_GAMMAS:
-        for gamma in RDQN_GAMMAS:
-            if gamma in rdqn_gamma_results:
-                mean, std = adjust_std_and_smooth(rdqn_gamma_results[gamma]["embb_sla_mean"], rdqn_gamma_results[gamma]["embb_sla_std"])
-                plt.plot(mean, label=RDQN_GAMMA_LABELS[gamma], color=RDQN_GAMMA_COLORS[gamma], linewidth=2, marker=RDQN_GAMMA_MARKERS[gamma], markevery=25)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
+    if PLOT_RDQN_LRS:
+        for lr in LR_VALUES:
+            if lr in rdqn_lr_results:
+                mean, std = adjust_std_and_smooth(rdqn_lr_results[lr]["embb_sla_mean"], rdqn_lr_results[lr]["embb_sla_std"])
+                plt.plot(mean, label=f"RDQN {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=RDQN_GAMMA_COLORS[gamma], alpha=0.1)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
     if PLOT_DQN:
         dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_embb_sla, std_dqn_embb_sla)
         plt.plot(dqn_mean, label='DQN + SAC', color='#d95f02', linewidth=2)
@@ -526,7 +633,9 @@ def plot_results():
     plt.yscale("linear")
     plt.legend()
     plt.tight_layout()
-    plt.savefig('eMBB_SLA.png')
+    plot_path = os.path.join(PLOTS_DIR, 'eMBB_SLA.png')
+    plt.savefig(plot_path)
+    print(f"Saved plot: {plot_path}")
     plt.close()
 
 # Run plotting function

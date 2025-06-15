@@ -26,7 +26,7 @@ TRAFFIC_TYPES = ['URLLC', 'eMBB']
 
 # A2C Hyperparameters
 GAMMA = 0.95  # Default, but will be overridden in main loop
-LR = 0.001
+LR_VALUES = [0.0005, 0.001, 0.0015]
 EPISODES = 300
 STEPS_PER_EPISODE = 50
 
@@ -141,7 +141,7 @@ def save_results(run_id, rewards, urllc_blocks, embb_blocks, urllc_sla, embb_sla
 # Training Loop
 # ================================
 
-def train_a2c(episodes=EPISODES, run_id=1, gamma=GAMMA):
+def train_a2c(episodes=EPISODES, run_id=1, lr=0.001):
     start_time = time.time()  # Start timing
     env = RANEnv()
     state_size = len(env.reset())
@@ -149,7 +149,7 @@ def train_a2c(episodes=EPISODES, run_id=1, gamma=GAMMA):
 
     actor = Actor(state_size, action_size)
     critic = Critic(state_size)
-    optimizer = optim.Adam(list(actor.parameters()) + list(critic.parameters()), lr=LR)
+    optimizer = optim.Adam(list(actor.parameters()) + list(critic.parameters()), lr=lr)
 
     reward_history = []
     urllc_block_history = []
@@ -193,7 +193,7 @@ def train_a2c(episodes=EPISODES, run_id=1, gamma=GAMMA):
 
             state_value = critic(state_tensor)
             next_state_value = critic(torch.tensor(next_state).float().unsqueeze(0))
-            advantage = reward + gamma * next_state_value - state_value
+            advantage = reward + GAMMA * next_state_value - state_value
 
             actor_loss = -torch.log(action_probs.squeeze(0)[action]) * advantage.detach()
             critic_loss = advantage.pow(2)
@@ -221,19 +221,19 @@ def train_a2c(episodes=EPISODES, run_id=1, gamma=GAMMA):
     elapsed_time = time.time() - start_time  # End timing
     print(f"A2C Training Time for Run {run_id}: {elapsed_time:.2f} seconds")
 
-    # Save training time to an A2C-specific CSV file (gamma in filename)
-    gamma_str = str(gamma).replace('.', '_')
-    times_csv = f"training_times_a2c_gamma_{gamma_str}.csv"
+    # Save training time to an A2C-specific CSV file (lr in filename)
+    lr_str = str(lr).replace('.', '_')
+    times_csv = f"training_times_a2c_lr_{lr_str}.csv"
     with open(times_csv, mode="a", newline="") as file:
         writer = csv.writer(file)
         if file.tell() == 0:
-            writer.writerow(["Run_ID", "Training_Time", "Gamma", "Learning_Rate"])
-        writer.writerow([run_id, elapsed_time, gamma, LR])
+            writer.writerow(["Run_ID", "Training_Time", "Learning_Rate"])
+        writer.writerow([run_id, elapsed_time, lr])
 
-    # Save results for the current run with a unique ID in gamma-specific folder
-    results_dir = f"results/results_a2c_gamma_{gamma_str}"
+    # Save results for the current run with a unique ID in lr-specific folder
+    results_dir = f"results/results_a2c_lr_{lr_str}"
     os.makedirs(results_dir, exist_ok=True)
-    np.savez(os.path.join(results_dir, f"a2c_results_run_{run_id}_gamma_{gamma_str}.npz"),
+    np.savez(os.path.join(results_dir, f"a2c_results_run_{run_id}_lr_{lr_str}.npz"),
              rewards=reward_history,
              urllc_blocks=urllc_block_history,
              embb_blocks=embb_block_history,
@@ -259,15 +259,15 @@ def train_a2c(episodes=EPISODES, run_id=1, gamma=GAMMA):
 # ================================
 
 if __name__ == "__main__":
-    gamma_values = [0.9, GAMMA, 0.99]
-    for gamma in gamma_values:
-        for run_id in range(1, 31):
-            train_a2c(episodes=EPISODES, run_id=run_id, gamma=gamma)
+    # gamma_values = [0.9, GAMMA, 0.99]
+    for lr in LR_VALUES:
+        for run_id in range(1, 6):
+            train_a2c(episodes=EPISODES, run_id=run_id, lr=lr)
 
-        # Calculate averages for each gamma
-        gamma_str = str(gamma).replace('.', '_')
+        # Calculate averages for each lr
+        lr_str = str(lr).replace('.', '_')
         a2c_times = []
-        times_csv = f"training_times_a2c_gamma_{gamma_str}.csv"
+        times_csv = f"training_times_a2c_lr_{lr_str}.csv"
         if os.path.exists(times_csv):
             with open(times_csv, mode="r") as file:
                 reader = csv.reader(file)
@@ -278,5 +278,5 @@ if __name__ == "__main__":
         with open(times_csv, mode="a", newline="") as file:
             writer = csv.writer(file)
             if file.tell() == 0:
-                writer.writerow(["Run_ID", "Training_Time", "Gamma", "Learning_Rate"])
-            writer.writerow(["Average", average_time, gamma, LR])
+                writer.writerow(["Run_ID", "Training_Time", "Learning_Rate"])
+            writer.writerow(["Average", average_time, lr])

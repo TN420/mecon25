@@ -23,7 +23,7 @@ EMBB_QUOTA = 70
 TRAFFIC_TYPES = ['URLLC', 'eMBB']
 
 GAMMA = 0.95  # Default, but will be overridden in main loop
-LR = 0.001
+LR_VALUES = [0.0005, 0.001, 0.0015]
 BATCH_SIZE = 16
 MEMORY_SIZE = 5000
 TARGET_UPDATE = 10
@@ -211,7 +211,7 @@ class PrioritizedReplayBuffer:
 # Training Loop
 # ================================
 
-def train_dqn(episodes=EPISODES, run_id=1, gamma=GAMMA):
+def train_dqn(episodes=EPISODES, run_id=1, lr=0.001):
     start_time = time.time()  # Start timing
     env = RANEnv()
     state_size = len(env.reset())
@@ -222,7 +222,7 @@ def train_dqn(episodes=EPISODES, run_id=1, gamma=GAMMA):
     target_net.load_state_dict(policy_net.state_dict())
     target_net.eval()
 
-    optimizer = optim.Adam(policy_net.parameters(), lr=LR)
+    optimizer = optim.Adam(policy_net.parameters(), lr=lr)
     memory = PrioritizedReplayBuffer(MEMORY_SIZE)
 
     reward_history = []
@@ -275,7 +275,7 @@ def train_dqn(episodes=EPISODES, run_id=1, gamma=GAMMA):
 
                 q_values = policy_net(s).gather(1, a.unsqueeze(1)).squeeze()
                 next_q_values = target_net(ns).max(1)[0].detach()
-                expected_q = r + gamma * next_q_values
+                expected_q = r + GAMMA * next_q_values
 
                 td_errors = expected_q - q_values
                 loss = (td_errors.pow(2) * weights).mean()
@@ -301,17 +301,17 @@ def train_dqn(episodes=EPISODES, run_id=1, gamma=GAMMA):
     elapsed_time = time.time() - start_time  # End timing
     print(f"RDQN Training Time for Run {run_id}: {elapsed_time:.2f} seconds")
 
-    # Save training time to an RDQN-specific CSV file (gamma in filename)
-    gamma_str = str(gamma).replace('.', '_')
-    times_csv = f"training_times_rdqn_gamma_{gamma_str}.csv"
+    # Save training time to an RDQN-specific CSV file (lr in filename)
+    lr_str = str(lr).replace('.', '_')
+    times_csv = f"training_times_rdqn_lr_{lr_str}.csv"
     with open(times_csv, mode="a", newline="") as file:
         writer = csv.writer(file)
         if file.tell() == 0:
-            writer.writerow(["Run_ID", "Training_Time", "Gamma", "Learning_Rate", "Batch_Size", "Memory_Size", "Alpha", "Beta_Start"])
-        writer.writerow([run_id, elapsed_time, gamma, LR, BATCH_SIZE, MEMORY_SIZE, ALPHA, BETA_START])
+            writer.writerow(["Run_ID", "Training_Time", "Learning_Rate", "Batch_Size", "Memory_Size", "Alpha", "Beta_Start"])
+        writer.writerow([run_id, elapsed_time, lr, BATCH_SIZE, MEMORY_SIZE, ALPHA, BETA_START])
 
-    os.makedirs(f"results/results_rdqn_gamma_{gamma_str}", exist_ok=True)
-    np.savez(f"results/results_rdqn_gamma_{gamma_str}/rdqn_results_run_{run_id}_gamma_{gamma_str}.npz",
+    os.makedirs(f"results/results_rdqn_lr_{lr_str}", exist_ok=True)
+    np.savez(f"results/results_rdqn_lr_{lr_str}/rdqn_results_run_{run_id}_lr_{lr_str}.npz",
              rewards=reward_history,
              urllc_blocks=urllc_block_history,
              embb_blocks=embb_block_history,
@@ -319,15 +319,15 @@ def train_dqn(episodes=EPISODES, run_id=1, gamma=GAMMA):
              embb_sla=embb_sla_pres)
 
 if __name__ == "__main__":
-    gamma_values = [0.9, GAMMA, 0.99]
-    for gamma in gamma_values:
-        for run_id in range(1, 31):
-            train_dqn(episodes=EPISODES, run_id=run_id, gamma=gamma)
+    # gamma_values = [0.9, GAMMA, 0.99]
+    for lr in LR_VALUES:
+        for run_id in range(1, 6):
+            train_dqn(episodes=EPISODES, run_id=run_id, lr=lr)
 
-        # Calculate averages for each gamma
-        gamma_str = str(gamma).replace('.', '_')
+        # Calculate averages for each lr
+        lr_str = str(lr).replace('.', '_')
         rdqn_times = []
-        times_csv = f"training_times_rdqn_gamma_{gamma_str}.csv"
+        times_csv = f"training_times_rdqn_lr_{lr_str}.csv"
         if os.path.exists(times_csv):
             with open(times_csv, mode="r") as file:
                 reader = csv.reader(file)
@@ -338,5 +338,5 @@ if __name__ == "__main__":
         with open(times_csv, mode="a", newline="") as file:
             writer = csv.writer(file)
             if file.tell() == 0:
-                writer.writerow(["Run_ID", "Training_Time", "Gamma", "Learning_Rate", "Batch_Size", "Memory_Size", "Alpha", "Beta_Start"])
-            writer.writerow(["Average", average_time, gamma, LR, BATCH_SIZE, MEMORY_SIZE, ALPHA, BETA_START])
+                writer.writerow(["Run_ID", "Training_Time", "Learning_Rate", "Batch_Size", "Memory_Size", "Alpha", "Beta_Start"])
+            writer.writerow(["Average", average_time, lr, BATCH_SIZE, MEMORY_SIZE, ALPHA, BETA_START])

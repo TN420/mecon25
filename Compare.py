@@ -304,8 +304,12 @@ for gamma in RDQN_GAMMAS:
 
 LR_VALUES = [0.0005, 0.001, 0.0015]
 LR_LABELS = {0.0005: "LR=0.0005", 0.001: "LR=0.001", 0.0015: "LR=0.0015"}
-LR_COLORS = {0.0005: "#1f77b4", 0.001: "#ff7f0e", 0.0015: "#2ca02c"}
-LR_MARKERS = {0.0005: "^", 0.001: "x", 0.0015: "o"}
+DQN_LR_COLORS = {0.0005: "#f6b700", 0.001: "#e36e00", 0.0015: "#e30000"}
+A2C_LR_COLORS = {0.0005: "#9eff00", 0.001: "#0cc400", 0.0015: "#0a9c00"}
+RDQN_LR_COLORS = {0.0005: "#e573ff", 0.001: "#9100e4", 0.0015: "#5f0075"}
+DQN_LR_MARKERS = {0.0005: "^", 0.001: "x", 0.0015: "o"}
+A2C_LR_MARKERS = {0.0005: "^", 0.001: "x", 0.0015: "o"}
+RDQN_LR_MARKERS = {0.0005: "^", 0.001: "x", 0.0015: "o"}
 
 dqn_lr_results = {}
 a2c_lr_results = {}
@@ -422,25 +426,25 @@ def plot_results():
         for lr in LR_VALUES:
             if lr in dqn_lr_results:
                 mean, std = adjust_std_and_smooth(dqn_lr_results[lr]["urllc_blocks_mean"], dqn_lr_results[lr]["urllc_blocks_std"])
-                plt.plot(mean, label=f"DQN {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
+                plt.plot(mean, label=f"DQN {LR_LABELS[lr]}", color=DQN_LR_COLORS[lr], linewidth=2, marker=DQN_LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=DQN_LR_COLORS[lr], alpha=0.1)
     # Overlay A2C LR curves
     if PLOT_A2C_LRS:
         for lr in LR_VALUES:
             if lr in a2c_lr_results:
                 mean, std = adjust_std_and_smooth(a2c_lr_results[lr]["urllc_blocks_mean"], a2c_lr_results[lr]["urllc_blocks_std"])
-                plt.plot(mean, label=f"A2C {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
+                plt.plot(mean, label=f"A2C {LR_LABELS[lr]}", color=A2C_LR_COLORS[lr], linewidth=2, marker=A2C_LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=A2C_LR_COLORS[lr], alpha=0.1)
     # Overlay RDQN LR curves
     if PLOT_RDQN_LRS:
         for lr in LR_VALUES:
             if lr in rdqn_lr_results:
                 mean, std = adjust_std_and_smooth(rdqn_lr_results[lr]["urllc_blocks_mean"], rdqn_lr_results[lr]["urllc_blocks_std"])
-                plt.plot(mean, label=f"RDQN {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
+                plt.plot(mean, label=f"RDQN {LR_LABELS[lr]}", color=RDQN_LR_COLORS[lr], linewidth=2, marker=RDQN_LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=RDQN_LR_COLORS[lr], alpha=0.1)
     if PLOT_DQN:
         dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_urllc_blocks, std_dqn_urllc_blocks)
         plt.plot(dqn_mean, label='DQN + SAC', color='#d95f02', linewidth=2)
@@ -479,23 +483,23 @@ def plot_results():
         for lr in LR_VALUES:
             if lr in dqn_lr_results:
                 mean, std = adjust_std_and_smooth(dqn_lr_results[lr]["urllc_sla_mean"], dqn_lr_results[lr]["urllc_sla_std"])
-                plt.plot(mean, label=f"DQN {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
+                plt.plot(mean, label=f"DQN {LR_LABELS[lr]}", color=DQN_LR_COLORS[lr], linewidth=2, marker=DQN_LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=DQN_LR_COLORS[lr], alpha=0.1)
     if PLOT_A2C_LRS:
         for lr in LR_VALUES:
             if lr in a2c_lr_results:
                 mean, std = adjust_std_and_smooth(a2c_lr_results[lr]["urllc_sla_mean"], a2c_lr_results[lr]["urllc_sla_std"])
-                plt.plot(mean, label=f"A2C {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
+                plt.plot(mean, label=f"A2C {LR_LABELS[lr]}", color=A2C_LR_COLORS[lr], linewidth=2, marker=A2C_LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=A2C_LR_COLORS[lr], alpha=0.1)
     if PLOT_RDQN_LRS:
         for lr in LR_VALUES:
             if lr in rdqn_lr_results:
                 mean, std = adjust_std_and_smooth(rdqn_lr_results[lr]["urllc_sla_mean"], rdqn_lr_results[lr]["urllc_sla_std"])
-                plt.plot(mean, label=f"RDQN {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
+                plt.plot(mean, label=f"RDQN {LR_LABELS[lr]}", color=RDQN_LR_COLORS[lr], linewidth=2, marker=RDQN_LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=RDQN_LR_COLORS[lr], alpha=0.1)
     if PLOT_DQN:
         dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_urllc_sla, std_dqn_urllc_sla)
         plt.plot(dqn_mean, label='DQN + SAC', color='#d95f02', linewidth=2)
@@ -534,23 +538,23 @@ def plot_results():
         for lr in LR_VALUES:
             if lr in dqn_lr_results:
                 mean, std = adjust_std_and_smooth(dqn_lr_results[lr]["embb_blocks_mean"], dqn_lr_results[lr]["embb_blocks_std"])
-                plt.plot(mean, label=f"DQN {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
+                plt.plot(mean, label=f"DQN {LR_LABELS[lr]}", color=DQN_LR_COLORS[lr], linewidth=2, marker=DQN_LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=DQN_LR_COLORS[lr], alpha=0.1)
     if PLOT_A2C_LRS:
         for lr in LR_VALUES:
             if lr in a2c_lr_results:
                 mean, std = adjust_std_and_smooth(a2c_lr_results[lr]["embb_blocks_mean"], a2c_lr_results[lr]["embb_blocks_std"])
-                plt.plot(mean, label=f"A2C {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
+                plt.plot(mean, label=f"A2C {LR_LABELS[lr]}", color=A2C_LR_COLORS[lr], linewidth=2, marker=A2C_LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=A2C_LR_COLORS[lr], alpha=0.1)
     if PLOT_RDQN_LRS:
         for lr in LR_VALUES:
             if lr in rdqn_lr_results:
                 mean, std = adjust_std_and_smooth(rdqn_lr_results[lr]["embb_blocks_mean"], rdqn_lr_results[lr]["embb_blocks_std"])
-                plt.plot(mean, label=f"RDQN {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
+                plt.plot(mean, label=f"RDQN {LR_LABELS[lr]}", color=RDQN_LR_COLORS[lr], linewidth=2, marker=RDQN_LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=RDQN_LR_COLORS[lr], alpha=0.1)
     if PLOT_DQN:
         dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_embb_blocks, std_dqn_embb_blocks)
         plt.plot(dqn_mean, label='DQN + SAC', color='#d95f02', linewidth=2)
@@ -589,23 +593,23 @@ def plot_results():
         for lr in LR_VALUES:
             if lr in dqn_lr_results:
                 mean, std = adjust_std_and_smooth(dqn_lr_results[lr]["embb_sla_mean"], dqn_lr_results[lr]["embb_sla_std"])
-                plt.plot(mean, label=f"DQN {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
+                plt.plot(mean, label=f"DQN {LR_LABELS[lr]}", color=DQN_LR_COLORS[lr], linewidth=2, marker=DQN_LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=DQN_LR_COLORS[lr], alpha=0.1)
     if PLOT_A2C_LRS:
         for lr in LR_VALUES:
             if lr in a2c_lr_results:
                 mean, std = adjust_std_and_smooth(a2c_lr_results[lr]["embb_sla_mean"], a2c_lr_results[lr]["embb_sla_std"])
-                plt.plot(mean, label=f"A2C {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
+                plt.plot(mean, label=f"A2C {LR_LABELS[lr]}", color=A2C_LR_COLORS[lr], linewidth=2, marker=A2C_LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=A2C_LR_COLORS[lr], alpha=0.1)
     if PLOT_RDQN_LRS:
         for lr in LR_VALUES:
             if lr in rdqn_lr_results:
                 mean, std = adjust_std_and_smooth(rdqn_lr_results[lr]["embb_sla_mean"], rdqn_lr_results[lr]["embb_sla_std"])
-                plt.plot(mean, label=f"RDQN {LR_LABELS[lr]}", color=LR_COLORS[lr], linewidth=2, marker=LR_MARKERS[lr], markevery=25)
+                plt.plot(mean, label=f"RDQN {LR_LABELS[lr]}", color=RDQN_LR_COLORS[lr], linewidth=2, marker=RDQN_LR_MARKERS[lr], markevery=25)
                 if SHOW_STD_DEV:
-                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=LR_COLORS[lr], alpha=0.1)
+                    plt.fill_between(range(len(mean)), mean - std, mean + std, color=RDQN_LR_COLORS[lr], alpha=0.1)
     if PLOT_DQN:
         dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_embb_sla, std_dqn_embb_sla)
         plt.plot(dqn_mean, label='DQN + SAC', color='#d95f02', linewidth=2)

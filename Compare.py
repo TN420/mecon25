@@ -206,6 +206,9 @@ RDQN_GAMMA_LABELS = {0.9: "RDQN γ=0.9", 0.95: "RDQN γ=0.95", 0.99: "RDQN γ=0.
 DQN_GAMMA_COLORS = {0.9: "#f6b700", 0.95: "#e36e00", 0.99: "#e30000"}
 A2C_GAMMA_COLORS = {0.9: "#9eff00", 0.95: "#0cc400", 0.99: "#0a9c00"}
 RDQN_GAMMA_COLORS = {0.9: "#e573ff", 0.95: "#9100e4", 0.99: "#5f0075"}
+DQN_GAMMA_MARKERS = {0.9: "^", 0.95: "x", 0.99: "o"}
+A2C_GAMMA_MARKERS = {0.9: "^", 0.95: "x", 0.99: "o"}
+RDQN_GAMMA_MARKERS = {0.9: "^", 0.95: "x", 0.99: "o"}
 
 dqn_gamma_results = {}
 a2c_gamma_results = {}
@@ -318,7 +321,7 @@ def plot_results():
         for gamma in DQN_GAMMAS:
             if gamma in dqn_gamma_results:
                 mean, std = adjust_std_and_smooth(dqn_gamma_results[gamma]["urllc_blocks_mean"], dqn_gamma_results[gamma]["urllc_blocks_std"])
-                plt.plot(mean, label=DQN_GAMMA_LABELS[gamma], color=DQN_GAMMA_COLORS[gamma], linewidth=2)
+                plt.plot(mean, label=DQN_GAMMA_LABELS[gamma], color=DQN_GAMMA_COLORS[gamma], linewidth=2, marker=DQN_GAMMA_MARKERS[gamma], markevery=25)
                 if SHOW_STD_DEV:
                     plt.fill_between(range(len(mean)), mean - std, mean + std, color=DQN_GAMMA_COLORS[gamma], alpha=0.1)
     # Overlay A2C gamma curves
@@ -326,7 +329,7 @@ def plot_results():
         for gamma in A2C_GAMMAS:
             if gamma in a2c_gamma_results:
                 mean, std = adjust_std_and_smooth(a2c_gamma_results[gamma]["urllc_blocks_mean"], a2c_gamma_results[gamma]["urllc_blocks_std"])
-                plt.plot(mean, label=A2C_GAMMA_LABELS[gamma], color=A2C_GAMMA_COLORS[gamma], linewidth=2)
+                plt.plot(mean, label=A2C_GAMMA_LABELS[gamma], color=A2C_GAMMA_COLORS[gamma], linewidth=2, marker=A2C_GAMMA_MARKERS[gamma], markevery=25)
                 if SHOW_STD_DEV:
                     plt.fill_between(range(len(mean)), mean - std, mean + std, color=A2C_GAMMA_COLORS[gamma], alpha=0.1)
     # Overlay RDQN gamma curves
@@ -334,7 +337,7 @@ def plot_results():
         for gamma in RDQN_GAMMAS:
             if gamma in rdqn_gamma_results:
                 mean, std = adjust_std_and_smooth(rdqn_gamma_results[gamma]["urllc_blocks_mean"], rdqn_gamma_results[gamma]["urllc_blocks_std"])
-                plt.plot(mean, label=RDQN_GAMMA_LABELS[gamma], color=RDQN_GAMMA_COLORS[gamma], linewidth=2)
+                plt.plot(mean, label=RDQN_GAMMA_LABELS[gamma], color=RDQN_GAMMA_COLORS[gamma], linewidth=2, marker=RDQN_GAMMA_MARKERS[gamma], markevery=25)
                 if SHOW_STD_DEV:
                     plt.fill_between(range(len(mean)), mean - std, mean + std, color=RDQN_GAMMA_COLORS[gamma], alpha=0.1)
     if PLOT_DQN:
@@ -373,21 +376,21 @@ def plot_results():
         for gamma in DQN_GAMMAS:
             if gamma in dqn_gamma_results:
                 mean, std = adjust_std_and_smooth(dqn_gamma_results[gamma]["urllc_sla_mean"], dqn_gamma_results[gamma]["urllc_sla_std"])
-                plt.plot(mean, label=DQN_GAMMA_LABELS[gamma], color=DQN_GAMMA_COLORS[gamma], linewidth=2)
+                plt.plot(mean, label=DQN_GAMMA_LABELS[gamma], color=DQN_GAMMA_COLORS[gamma], linewidth=2, marker=DQN_GAMMA_MARKERS[gamma], markevery=25)
                 if SHOW_STD_DEV:
                     plt.fill_between(range(len(mean)), mean - std, mean + std, color=DQN_GAMMA_COLORS[gamma], alpha=0.1)
     if PLOT_A2C_GAMMAS:
         for gamma in A2C_GAMMAS:
             if gamma in a2c_gamma_results:
                 mean, std = adjust_std_and_smooth(a2c_gamma_results[gamma]["urllc_sla_mean"], a2c_gamma_results[gamma]["urllc_sla_std"])
-                plt.plot(mean, label=A2C_GAMMA_LABELS[gamma], color=A2C_GAMMA_COLORS[gamma], linewidth=2)
+                plt.plot(mean, label=A2C_GAMMA_LABELS[gamma], color=A2C_GAMMA_COLORS[gamma], linewidth=2, marker=A2C_GAMMA_MARKERS[gamma], markevery=25)
                 if SHOW_STD_DEV:
                     plt.fill_between(range(len(mean)), mean - std, mean + std, color=A2C_GAMMA_COLORS[gamma], alpha=0.1)
     if PLOT_RDQN_GAMMAS:
         for gamma in RDQN_GAMMAS:
             if gamma in rdqn_gamma_results:
                 mean, std = adjust_std_and_smooth(rdqn_gamma_results[gamma]["urllc_sla_mean"], rdqn_gamma_results[gamma]["urllc_sla_std"])
-                plt.plot(mean, label=RDQN_GAMMA_LABELS[gamma], color=RDQN_GAMMA_COLORS[gamma], linewidth=2)
+                plt.plot(mean, label=RDQN_GAMMA_LABELS[gamma], color=RDQN_GAMMA_COLORS[gamma], linewidth=2, marker=RDQN_GAMMA_MARKERS[gamma], markevery=25)
                 if SHOW_STD_DEV:
                     plt.fill_between(range(len(mean)), mean - std, mean + std, color=RDQN_GAMMA_COLORS[gamma], alpha=0.1)
     if PLOT_DQN:
@@ -426,21 +429,21 @@ def plot_results():
         for gamma in DQN_GAMMAS:
             if gamma in dqn_gamma_results:
                 mean, std = adjust_std_and_smooth(dqn_gamma_results[gamma]["embb_blocks_mean"], dqn_gamma_results[gamma]["embb_blocks_std"])
-                plt.plot(mean, label=DQN_GAMMA_LABELS[gamma], color=DQN_GAMMA_COLORS[gamma], linewidth=2)
+                plt.plot(mean, label=DQN_GAMMA_LABELS[gamma], color=DQN_GAMMA_COLORS[gamma], linewidth=2, marker=DQN_GAMMA_MARKERS[gamma], markevery=25)
                 if SHOW_STD_DEV:
                     plt.fill_between(range(len(mean)), mean - std, mean + std, color=DQN_GAMMA_COLORS[gamma], alpha=0.1)
     if PLOT_A2C_GAMMAS:
         for gamma in A2C_GAMMAS:
             if gamma in a2c_gamma_results:
                 mean, std = adjust_std_and_smooth(a2c_gamma_results[gamma]["embb_blocks_mean"], a2c_gamma_results[gamma]["embb_blocks_std"])
-                plt.plot(mean, label=A2C_GAMMA_LABELS[gamma], color=A2C_GAMMA_COLORS[gamma], linewidth=2)
+                plt.plot(mean, label=A2C_GAMMA_LABELS[gamma], color=A2C_GAMMA_COLORS[gamma], linewidth=2, marker=A2C_GAMMA_MARKERS[gamma], markevery=25)
                 if SHOW_STD_DEV:
                     plt.fill_between(range(len(mean)), mean - std, mean + std, color=A2C_GAMMA_COLORS[gamma], alpha=0.1)
     if PLOT_RDQN_GAMMAS:
         for gamma in RDQN_GAMMAS:
             if gamma in rdqn_gamma_results:
                 mean, std = adjust_std_and_smooth(rdqn_gamma_results[gamma]["embb_blocks_mean"], rdqn_gamma_results[gamma]["embb_blocks_std"])
-                plt.plot(mean, label=RDQN_GAMMA_LABELS[gamma], color=RDQN_GAMMA_COLORS[gamma], linewidth=2)
+                plt.plot(mean, label=RDQN_GAMMA_LABELS[gamma], color=RDQN_GAMMA_COLORS[gamma], linewidth=2, marker=RDQN_GAMMA_MARKERS[gamma], markevery=25)
                 if SHOW_STD_DEV:
                     plt.fill_between(range(len(mean)), mean - std, mean + std, color=RDQN_GAMMA_COLORS[gamma], alpha=0.1)
     if PLOT_DQN:
@@ -479,21 +482,21 @@ def plot_results():
         for gamma in DQN_GAMMAS:
             if gamma in dqn_gamma_results:
                 mean, std = adjust_std_and_smooth(dqn_gamma_results[gamma]["embb_sla_mean"], dqn_gamma_results[gamma]["embb_sla_std"])
-                plt.plot(mean, label=DQN_GAMMA_LABELS[gamma], color=DQN_GAMMA_COLORS[gamma], linewidth=2)
+                plt.plot(mean, label=DQN_GAMMA_LABELS[gamma], color=DQN_GAMMA_COLORS[gamma], linewidth=2, marker=DQN_GAMMA_MARKERS[gamma], markevery=25)
                 if SHOW_STD_DEV:
                     plt.fill_between(range(len(mean)), mean - std, mean + std, color=DQN_GAMMA_COLORS[gamma], alpha=0.1)
     if PLOT_A2C_GAMMAS:
         for gamma in A2C_GAMMAS:
             if gamma in a2c_gamma_results:
                 mean, std = adjust_std_and_smooth(a2c_gamma_results[gamma]["embb_sla_mean"], a2c_gamma_results[gamma]["embb_sla_std"])
-                plt.plot(mean, label=A2C_GAMMA_LABELS[gamma], color=A2C_GAMMA_COLORS[gamma], linewidth=2)
+                plt.plot(mean, label=A2C_GAMMA_LABELS[gamma], color=A2C_GAMMA_COLORS[gamma], linewidth=2, marker=A2C_GAMMA_MARKERS[gamma], markevery=25)
                 if SHOW_STD_DEV:
                     plt.fill_between(range(len(mean)), mean - std, mean + std, color=A2C_GAMMA_COLORS[gamma], alpha=0.1)
     if PLOT_RDQN_GAMMAS:
         for gamma in RDQN_GAMMAS:
             if gamma in rdqn_gamma_results:
                 mean, std = adjust_std_and_smooth(rdqn_gamma_results[gamma]["embb_sla_mean"], rdqn_gamma_results[gamma]["embb_sla_std"])
-                plt.plot(mean, label=RDQN_GAMMA_LABELS[gamma], color=RDQN_GAMMA_COLORS[gamma], linewidth=2)
+                plt.plot(mean, label=RDQN_GAMMA_LABELS[gamma], color=RDQN_GAMMA_COLORS[gamma], linewidth=2, marker=RDQN_GAMMA_MARKERS[gamma], markevery=25)
                 if SHOW_STD_DEV:
                     plt.fill_between(range(len(mean)), mean - std, mean + std, color=RDQN_GAMMA_COLORS[gamma], alpha=0.1)
     if PLOT_DQN:

@@ -56,11 +56,10 @@ class RANEnv:
         ], dtype=np.float32)
 
     def step(self, action, traffic_type):
-        reward = 0
+        # Load balancing reward: encourage similar usage ratios
         done = False
         admitted = False
         blocked = False
-        sla_violated = False
 
         request_prbs = np.random.randint(1, 5) if traffic_type == 'URLLC' else np.random.randint(5, 50)
 
@@ -68,31 +67,27 @@ class RANEnv:
             if traffic_type == 'URLLC':
                 if self.urllc_usage + request_prbs <= URLLC_QUOTA:
                     self.urllc_usage += request_prbs
-                    reward = 1
                     admitted = True
                 else:
-                    reward = -1
                     blocked = True
-                    sla_violated = True
             elif traffic_type == 'eMBB':
                 if self.embb_usage + request_prbs <= EMBB_QUOTA:
                     self.embb_usage += request_prbs
-                    reward = 1
                     admitted = True
                 elif self.urllc_usage + self.embb_usage + request_prbs <= TOTAL_PRBS:
                     self.embb_usage += request_prbs
-                    reward = -0.5
                     admitted = True
-                    sla_violated = True
                 else:
-                    reward = -1
                     blocked = True
-                    sla_violated = True
-        else:
-            reward = 0.1 if not admitted else -0.2
+        # Reward: negative absolute difference between normalized usages (maximize balance)
+        usage_diff = abs((self.urllc_usage / URLLC_QUOTA) - (self.embb_usage / EMBB_QUOTA))
+        reward = -usage_diff
+        # Small penalty for blocking
+        if blocked:
+            reward -= 0.2
 
         next_state = self._get_state()
-        return next_state, reward, done, admitted, blocked, sla_violated, traffic_type
+        return next_state, reward, done, admitted, blocked, False, traffic_type
 
 # ================================
 # DQN Network
@@ -224,5 +219,5 @@ def train_dqn(episodes=EPISODES, run_id=1):
              urllc_sla=urllc_sla_pres,
              embb_sla=embb_sla_pres)
 
-for run_id in range(1, 101):
+for run_id in range(1, 6):
     train_dqn(episodes=EPISODES, run_id=run_id)

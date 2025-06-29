@@ -8,7 +8,7 @@ import os
 # Configuration
 # ================================
 
-NUM_RUNS = 100  # Number of runs you performed
+NUM_RUNS = 5  # Number of runs you performed
 
 RESULTS_DIR = "/home/w5/pydemo/mecon25/results"
 
@@ -162,6 +162,37 @@ mean_random_embb_sla = np.mean(random_embb_sla, axis=0)
 std_random_embb_sla = np.std(random_embb_sla, axis=0)
 
 # ================================
+# Compute Load Balancing Metrics
+# ================================
+
+def compute_load_balance_metric(urllc_blocks, embb_blocks, urllc_quota=30, embb_quota=70):
+    # Example: difference in normalized usage (lower is better)
+    # Here, blocks are used as a proxy for overload; you may want to use usage if available
+    urllc_norm = urllc_blocks / urllc_quota
+    embb_norm = embb_blocks / embb_quota
+    return np.abs(urllc_norm - embb_norm)
+
+# Compute load balancing metric for each run and method
+dqn_load_balance_all = [compute_load_balance_metric(u, e) for u, e in zip(dqn_urllc_blocks_all, dqn_embb_blocks_all)]
+a2c_load_balance_all = [compute_load_balance_metric(u, e) for u, e in zip(a2c_urllc_blocks_all, a2c_embb_blocks_all)]
+rdqn_load_balance_all = [compute_load_balance_metric(u, e) for u, e in zip(rdqn_urllc_blocks_all, rdqn_embb_blocks_all)]
+random_load_balance_all = [compute_load_balance_metric(u, e) for u, e in zip(random_urllc_blocks, random_embb_blocks)]
+
+dqn_load_balance_all = np.array(dqn_load_balance_all)
+a2c_load_balance_all = np.array(a2c_load_balance_all)
+rdqn_load_balance_all = np.array(rdqn_load_balance_all)
+random_load_balance_all = np.array(random_load_balance_all)
+
+mean_dqn_load_balance = np.nanmean(dqn_load_balance_all, axis=0)
+std_dqn_load_balance = np.nanstd(dqn_load_balance_all, axis=0)
+mean_a2c_load_balance = np.nanmean(a2c_load_balance_all, axis=0)
+std_a2c_load_balance = np.nanstd(a2c_load_balance_all, axis=0)
+mean_rdqn_load_balance = np.nanmean(rdqn_load_balance_all, axis=0)
+std_rdqn_load_balance = np.nanstd(rdqn_load_balance_all, axis=0)
+mean_random_load_balance = np.nanmean(random_load_balance_all, axis=0)
+std_random_load_balance = np.nanstd(random_load_balance_all, axis=0)
+
+# ================================
 # Smoothing Helper
 # ================================
 
@@ -311,6 +342,36 @@ def plot_results():
     plt.legend()
     plt.tight_layout()
     plt.savefig('eMBB_SLA.png')
+    plt.close()
+
+    # Plot Load Balancing Metric
+    plt.figure(figsize=(6, 4))
+    dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_load_balance, std_dqn_load_balance)
+    a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c_load_balance, std_a2c_load_balance)
+    rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn_load_balance, std_rdqn_load_balance)
+    random_mean, random_std = adjust_std_and_smooth(mean_random_load_balance, std_random_load_balance)
+
+    plt.plot(dqn_mean, label='DQN + SAC', color='#d95f02', linewidth=2)
+    if SHOW_STD_DEV:
+        plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='#d95f02', alpha=0.1)
+    plt.plot(a2c_mean, label='A2C + SAC', color='#1b9e77', linewidth=2)
+    if SHOW_STD_DEV:
+        plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='#1b9e77', alpha=0.1)
+    plt.plot(rdqn_mean, label='Rainbow + SAC', color='#7570b3', linewidth=2)
+    if SHOW_STD_DEV:
+        plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='#7570b3', alpha=0.1)
+    plt.plot(random_mean, label='SAC', color='gray', linestyle='--', linewidth=2)
+    if SHOW_STD_DEV:
+        plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='gray', alpha=0.1)
+
+    plt.xlim(0, max_length)
+    plt.title("Network Slicing Load Balancing Metric")
+    plt.xlabel("Number of Episodes")
+    plt.ylabel("Normalized Usage Difference")
+    plt.yscale("linear")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('Load_Balance_Metric.png')
     plt.close()
 
 # Run plotting function

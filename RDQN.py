@@ -17,9 +17,10 @@ import time
 
 TOTAL_PRBS = 100
 URLLC_QUOTA = 30
-EMBB_QUOTA = 70
+EMBB_QUOTA = 60
+MMTC_QUOTA = 10
 
-TRAFFIC_TYPES = ['URLLC', 'eMBB']
+TRAFFIC_TYPES = ['URLLC', 'eMBB', 'mMTC']
 
 GAMMA = 0.95
 LR = 0.001
@@ -42,6 +43,7 @@ class RANEnv:
     def reset(self):
         self.urllc_usage = 0
         self.embb_usage = 0
+        self.mmtc_usage = 0
         self.total_prbs = TOTAL_PRBS
         self.state = self._get_state()
         return self.state
@@ -50,18 +52,22 @@ class RANEnv:
         return np.array([
             self.urllc_usage / TOTAL_PRBS,
             self.embb_usage / TOTAL_PRBS,
-            1.0,
+            self.mmtc_usage / TOTAL_PRBS,
             1.0
         ], dtype=np.float32)
 
     def step(self, action, traffic_type):
-        # Load balancing reward: encourage similar usage ratios
         reward = 0
         done = False
         admitted = False
         blocked = False
 
-        request_prbs = np.random.randint(1, 5) if traffic_type == 'URLLC' else np.random.randint(5, 50)
+        if traffic_type == 'URLLC':
+            request_prbs = np.random.randint(1, 5)
+        elif traffic_type == 'eMBB':
+            request_prbs = np.random.randint(5, 50)
+        else:  # mMTC
+            request_prbs = np.random.randint(1, 3)
 
         if action == 1:
             if traffic_type == 'URLLC':
@@ -74,15 +80,24 @@ class RANEnv:
                 if self.embb_usage + request_prbs <= EMBB_QUOTA:
                     self.embb_usage += request_prbs
                     admitted = True
-                elif self.urllc_usage + self.embb_usage + request_prbs <= TOTAL_PRBS:
+                elif self.urllc_usage + self.embb_usage + self.mmtc_usage + request_prbs <= TOTAL_PRBS:
                     self.embb_usage += request_prbs
                     admitted = True
                 else:
                     blocked = True
-        # Reward: negative absolute difference between normalized usages (maximize balance)
-        usage_diff = abs((self.urllc_usage / URLLC_QUOTA) - (self.embb_usage / EMBB_QUOTA))
+            elif traffic_type == 'mMTC':
+                if self.mmtc_usage + request_prbs <= MMTC_QUOTA:
+                    self.mmtc_usage += request_prbs
+                    admitted = True
+                elif self.urllc_usage + self.embb_usage + self.mmtc_usage + request_prbs <= TOTAL_PRBS:
+                    self.mmtc_usage += request_prbs
+                    admitted = True
+                else:
+                    blocked = True
+        usage_diff = abs((self.urllc_usage / URLLC_QUOTA) - (self.embb_usage / EMBB_QUOTA)) \
+                   + abs((self.urllc_usage / URLLC_QUOTA) - (self.mmtc_usage / MMTC_QUOTA)) \
+                   + abs((self.embb_usage / EMBB_QUOTA) - (self.mmtc_usage / MMTC_QUOTA))
         reward = -usage_diff
-        # Small penalty for blocking
         if blocked:
             reward -= 0.2
 
@@ -222,18 +237,23 @@ def train_dqn(episodes=EPISODES, run_id=1):
     reward_history = []
     urllc_block_history = []
     embb_block_history = []
+    mmtc_block_history = []
     urllc_sla_pres = []
     embb_sla_pres = []
+    mmtc_sla_pres = []
 
     for episode in range(episodes):
         state = env.reset()
         total_reward = 0
         urllc_blocks = 0
         embb_blocks = 0
+        mmtc_blocks = 0
         urllc_sla_preserved = 0
         embb_sla_preserved = 0
+        mmtc_sla_preserved = 0
         urllc_total_requests = 0
         embb_total_requests = 0
+        mmtc_total_requests = 0
 
         beta = min(1.0, BETA_START + episode * (1.0 - BETA_START) / episodes)
 
@@ -241,6 +261,7 @@ def train_dqn(episodes=EPISODES, run_id=1):
             traffic_type = random.choice(TRAFFIC_TYPES)
             urllc_total_requests += traffic_type == 'URLLC'
             embb_total_requests += traffic_type == 'eMBB'
+            mmtc_total_requests += traffic_type == 'mMTC'
 
             with torch.no_grad():
                 q_vals = policy_net(torch.tensor(state).float().unsqueeze(0))
@@ -251,9 +272,11 @@ def train_dqn(episodes=EPISODES, run_id=1):
             if blocked:
                 urllc_blocks += t_type == 'URLLC'
                 embb_blocks += t_type == 'eMBB'
+                mmtc_blocks += t_type == 'mMTC'
             if not sla_violated:
                 urllc_sla_preserved += t_type == 'URLLC'
                 embb_sla_preserved += t_type == 'eMBB'
+                mmtc_sla_preserved += t_type == 'mMTC'
 
             memory.push(state, action, reward, next_state)
             state = next_state
@@ -284,8 +307,10 @@ def train_dqn(episodes=EPISODES, run_id=1):
         reward_history.append(total_reward)
         urllc_block_history.append(urllc_blocks)
         embb_block_history.append(embb_blocks)
+        mmtc_block_history.append(mmtc_blocks)
         urllc_sla_pres.append(urllc_sla_preserved / urllc_total_requests if urllc_total_requests > 0 else 0)
         embb_sla_pres.append(embb_sla_preserved / embb_total_requests if embb_total_requests > 0 else 0)
+        mmtc_sla_pres.append(mmtc_sla_preserved / mmtc_total_requests if mmtc_total_requests > 0 else 0)
 
         if episode % TARGET_UPDATE == 0:
             target_net.load_state_dict(policy_net.state_dict())
@@ -297,8 +322,10 @@ def train_dqn(episodes=EPISODES, run_id=1):
              rewards=reward_history,
              urllc_blocks=urllc_block_history,
              embb_blocks=embb_block_history,
+             mmtc_blocks=mmtc_block_history,
              urllc_sla=urllc_sla_pres,
-             embb_sla=embb_sla_pres)
+             embb_sla=embb_sla_pres,
+             mmtc_sla=mmtc_sla_pres)
 
 for run_id in range(1, 6):
     train_dqn(episodes=EPISODES, run_id=run_id)

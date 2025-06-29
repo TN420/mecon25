@@ -21,6 +21,9 @@ RDQN_FILE_PATTERN = "rdqn_results_run_{}.npz"
 dqn_usage = []
 a2c_usage = []
 rdqn_usage = []
+dqn_mmtc = []
+a2c_mmtc = []
+rdqn_mmtc = []
 
 print("Checking shapes of all metrics across runs...")
 
@@ -46,7 +49,6 @@ for run_id in range(1, NUM_RUNS + 1):
         dqn_results = np.load(dqn_file)
         a2c_results = np.load(a2c_file)
         rdqn_results = np.load(rdqn_file)
-        # Use only rewards as a placeholder for load balancing metric if nothing else is available
         dqn_usage.append(resize_data(dqn_results['rewards'], max_length))
         a2c_usage.append(resize_data(a2c_results['rewards'], max_length))
         rdqn_usage.append(resize_data(rdqn_results['rewards'], max_length))
@@ -56,6 +58,9 @@ for run_id in range(1, NUM_RUNS + 1):
 dqn_usage = np.array(dqn_usage)
 a2c_usage = np.array(a2c_usage)
 rdqn_usage = np.array(rdqn_usage)
+dqn_mmtc = np.array(dqn_mmtc)
+a2c_mmtc = np.array(a2c_mmtc)
+rdqn_mmtc = np.array(rdqn_mmtc)
 
 # Generate random baseline for load balancing metric
 random_usage = []
@@ -91,18 +96,10 @@ def plot_results():
     rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn, std_rdqn)
     random_mean, random_std = adjust_std_and_smooth(mean_random, std_random)
 
-    plt.plot(dqn_mean, label='DQN + SAC', color='#d95f02', linewidth=2, marker='o', markevery=0.1)
-    if SHOW_STD_DEV:
-        plt.fill_between(range(len(dqn_mean)), dqn_mean - dqn_std, dqn_mean + dqn_std, color='#d95f02', alpha=0.1)
-    plt.plot(a2c_mean, label='A2C + SAC', color='#1b9e77', linewidth=2, marker='s', markevery=0.1)
-    if SHOW_STD_DEV:
-        plt.fill_between(range(len(a2c_mean)), a2c_mean - a2c_std, a2c_mean + a2c_std, color='#1b9e77', alpha=0.1)
-    plt.plot(rdqn_mean, label='Rainbow + SAC', color='#7570b3', linewidth=2, marker='^', markevery=0.1)
-    if SHOW_STD_DEV:
-        plt.fill_between(range(len(rdqn_mean)), rdqn_mean - rdqn_std, rdqn_mean + rdqn_std, color='#7570b3', alpha=0.1)
-    plt.plot(random_mean, label='SAC', color='gray', linestyle='--', linewidth=2, marker='x', markevery=0.1)
-    if SHOW_STD_DEV:
-        plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='gray', alpha=0.1)
+    plt.plot(dqn_mean, label='DQN', color='#d95f02', linewidth=2, marker='o', markevery=0.1)
+    plt.plot(a2c_mean, label='A2C', color='#1b9e77', linewidth=2, marker='s', markevery=0.1)
+    plt.plot(rdqn_mean, label='Rainbow', color='#7570b3', linewidth=2, marker='^', markevery=0.1)
+    plt.plot(random_mean, label='Random', color='gray', linestyle='--', linewidth=2, marker='x', markevery=0.1)
 
     plt.xlim(0, max_length)
     plt.title("Network Slicing Load Balancing Metric")

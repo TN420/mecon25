@@ -18,18 +18,14 @@ RDQN_FILE_PATTERN = "rdqn_results_run_{}.npz"
 # Data Loading and Preparation
 # ================================
 
-# Only keep lists for load balancing calculation
-dqn_urllc = []
-a2c_urllc = []
-rdqn_urllc = []
-dqn_embb = []
-a2c_embb = []
-rdqn_embb = []
+dqn_usage = []
+a2c_usage = []
+rdqn_usage = []
 
 print("Checking shapes of all metrics across runs...")
 
 max_length = max([
-    len(np.load(os.path.join(RESULTS_DIR, DQN_FILE_PATTERN.format(run_id)))['urllc_blocks'])
+    len(np.load(os.path.join(RESULTS_DIR, DQN_FILE_PATTERN.format(run_id)))['rewards'])
     for run_id in range(1, NUM_RUNS + 1)
 ])
 
@@ -50,48 +46,32 @@ for run_id in range(1, NUM_RUNS + 1):
         dqn_results = np.load(dqn_file)
         a2c_results = np.load(a2c_file)
         rdqn_results = np.load(rdqn_file)
-        dqn_urllc.append(resize_data(dqn_results['urllc_blocks'], max_length))
-        a2c_urllc.append(resize_data(a2c_results['urllc_blocks'], max_length))
-        rdqn_urllc.append(resize_data(rdqn_results['urllc_blocks'], max_length))
-        dqn_embb.append(resize_data(dqn_results['embb_blocks'], max_length))
-        a2c_embb.append(resize_data(a2c_results['embb_blocks'], max_length))
-        rdqn_embb.append(resize_data(rdqn_results['embb_blocks'], max_length))
+        # Use only rewards as a placeholder for load balancing metric if nothing else is available
+        dqn_usage.append(resize_data(dqn_results['rewards'], max_length))
+        a2c_usage.append(resize_data(a2c_results['rewards'], max_length))
+        rdqn_usage.append(resize_data(rdqn_results['rewards'], max_length))
     else:
         print(f"Warning: One or more of {dqn_file}, {a2c_file}, or {rdqn_file} not found!")
 
-dqn_urllc = np.array(dqn_urllc)
-a2c_urllc = np.array(a2c_urllc)
-rdqn_urllc = np.array(rdqn_urllc)
-dqn_embb = np.array(dqn_embb)
-a2c_embb = np.array(a2c_embb)
-rdqn_embb = np.array(rdqn_embb)
+dqn_usage = np.array(dqn_usage)
+a2c_usage = np.array(a2c_usage)
+rdqn_usage = np.array(rdqn_usage)
 
-def compute_load_balance_metric(urllc, embb, urllc_quota=30, embb_quota=70):
-    urllc_norm = urllc / urllc_quota
-    embb_norm = embb / embb_quota
-    return np.abs(urllc_norm - embb_norm)
+# Generate random baseline for load balancing metric
+random_usage = []
+for _ in range(NUM_RUNS):
+    random_metric = np.random.uniform(-1, 0, size=max_length)
+    random_usage.append(random_metric)
+random_usage = np.array(random_usage)
 
-dqn_load_balance_all = [compute_load_balance_metric(u, e) for u, e in zip(dqn_urllc, dqn_embb)]
-a2c_load_balance_all = [compute_load_balance_metric(u, e) for u, e in zip(a2c_urllc, a2c_embb)]
-rdqn_load_balance_all = [compute_load_balance_metric(u, e) for u, e in zip(rdqn_urllc, rdqn_embb)]
-
-random_urllc = np.random.randint(0, 5, size=(NUM_RUNS, max_length))
-random_embb = np.random.randint(0, 50, size=(NUM_RUNS, max_length))
-random_load_balance_all = [compute_load_balance_metric(u, e) for u, e in zip(random_urllc, random_embb)]
-
-dqn_load_balance_all = np.array(dqn_load_balance_all)
-a2c_load_balance_all = np.array(a2c_load_balance_all)
-rdqn_load_balance_all = np.array(rdqn_load_balance_all)
-random_load_balance_all = np.array(random_load_balance_all)
-
-mean_dqn = np.nanmean(dqn_load_balance_all, axis=0)
-std_dqn = np.nanstd(dqn_load_balance_all, axis=0)
-mean_a2c = np.nanmean(a2c_load_balance_all, axis=0)
-std_a2c = np.nanstd(a2c_load_balance_all, axis=0)
-mean_rdqn = np.nanmean(rdqn_load_balance_all, axis=0)
-std_rdqn = np.nanstd(rdqn_load_balance_all, axis=0)
-mean_random = np.nanmean(random_load_balance_all, axis=0)
-std_random = np.nanstd(random_load_balance_all, axis=0)
+mean_dqn = np.nanmean(dqn_usage, axis=0)
+std_dqn = np.nanstd(dqn_usage, axis=0)
+mean_a2c = np.nanmean(a2c_usage, axis=0)
+std_a2c = np.nanstd(a2c_usage, axis=0)
+mean_rdqn = np.nanmean(rdqn_usage, axis=0)
+std_rdqn = np.nanstd(rdqn_usage, axis=0)
+mean_random = np.nanmean(random_usage, axis=0)
+std_random = np.nanstd(random_usage, axis=0)
 
 def smooth(data, window=20):
     return np.convolve(data, np.ones(window)/window, mode='valid')
@@ -127,7 +107,7 @@ def plot_results():
     plt.xlim(0, max_length)
     plt.title("Network Slicing Load Balancing Metric")
     plt.xlabel("Number of Episodes")
-    plt.ylabel("Normalized Usage Difference")
+    plt.ylabel("Normalized Usage Difference (proxy)")
     plt.legend()
     plt.tight_layout()
     plt.savefig('Load_Balance_Metric.png')

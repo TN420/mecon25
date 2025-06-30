@@ -139,6 +139,7 @@ def save_results(run_id, rewards, urllc_blocks, embb_blocks, urllc_sla, embb_sla
 # ================================
 
 def train_a2c(episodes=EPISODES, run_id=1):
+    global URLLC_QUOTA, EMBB_QUOTA
     env = RANEnv()
     state_size = len(env.reset())
     action_size = 2
@@ -157,7 +158,19 @@ def train_a2c(episodes=EPISODES, run_id=1):
     actor_losses = []
     critic_losses = []
 
+    # Store original quotas for restoration
+    original_total_prbs = env.total_prbs
+    original_urllc_quota = URLLC_QUOTA
+    original_embb_quota = EMBB_QUOTA
+
     for episode in range(episodes):
+        # Simulate network disruption at episode 150
+        if episode == 150:
+            env.total_prbs = int(original_total_prbs * 0.2)
+            URLLC_QUOTA = int(original_urllc_quota * 0.2)
+            EMBB_QUOTA = int(original_embb_quota * 0.2)
+            print("Network disruption: PRBs and quotas reduced to 20%.")
+
         state = env.reset()
         episode_return = 0
         urllc_blocks = 0

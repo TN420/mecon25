@@ -134,6 +134,7 @@ class ReplayBuffer:
 # ================================
 
 def train_dqn(episodes=EPISODES, run_id=1):
+    global URLLC_QUOTA, EMBB_QUOTA
     env = RANEnv()
     state_size = len(env.reset())
     action_size = 2
@@ -152,7 +153,19 @@ def train_dqn(episodes=EPISODES, run_id=1):
     urllc_sla_pres = []
     embb_sla_pres = []
 
+    # Store original quotas for restoration
+    original_total_prbs = env.total_prbs
+    original_urllc_quota = URLLC_QUOTA
+    original_embb_quota = EMBB_QUOTA
+
     for episode in range(episodes):
+        # Simulate network disruption at episode 150
+        if episode == 150:
+            env.total_prbs = int(original_total_prbs * 0.2)
+            URLLC_QUOTA = int(original_urllc_quota * 0.2)
+            EMBB_QUOTA = int(original_embb_quota * 0.2)
+            print("Network disruption: PRBs and quotas reduced to 20%.")
+
         state = env.reset()
         total_reward = 0
         urllc_blocks = 0

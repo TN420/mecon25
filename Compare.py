@@ -193,6 +193,8 @@ SHOW_STD_DEV = False  # Set to False to disable standard deviation display
 # ================================
 
 def plot_results():
+    disruption_ep = 150  # Episode where PRBs are halved
+
     # Plot URLLC Blocks
     plt.figure(figsize=(6, 4))
     dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn_urllc_blocks, std_dqn_urllc_blocks)
@@ -213,11 +215,13 @@ def plot_results():
     if SHOW_STD_DEV:
         plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='gray', alpha=0.1)
 
-    plt.xlim(0, max_length)  # Set x-axis limit to max_length
+    plt.xlim(0, max_length)
     plt.title("URLLC Block Rate")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Requests Blocked")
     plt.yscale("linear")
+    plt.axvline(disruption_ep, color='red', linestyle='--', linewidth=1)
+    plt.text(disruption_ep+2, plt.ylim()[1]*0.9, "Network disruption", color='red', rotation=90, va='top', fontsize=8)
     plt.legend()
     plt.tight_layout()
     plt.savefig('URLLC_Blocks.png')
@@ -243,11 +247,13 @@ def plot_results():
     if SHOW_STD_DEV:
         plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='gray', alpha=0.1)
 
-    plt.xlim(0, max_length)  # Set x-axis limit to max_length
+    plt.xlim(0, max_length)
     plt.title("URLLC SLA Satisfaction Rate")
     plt.xlabel("Number of Episodes")
     plt.ylabel("SLA Satisfaction (%)")
     plt.yscale("linear")
+    plt.axvline(disruption_ep, color='red', linestyle='--', linewidth=1)
+    plt.text(disruption_ep+2, plt.ylim()[1]*0.9, "Network disruption", color='red', rotation=90, va='top', fontsize=8)
     plt.legend()
     plt.tight_layout()
     plt.savefig('URLLC_SLA.png')
@@ -273,11 +279,13 @@ def plot_results():
     if SHOW_STD_DEV:
         plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='gray', alpha=0.1)
 
-    plt.xlim(0, max_length)  # Set x-axis limit to max_length
+    plt.xlim(0, max_length)
     plt.title("eMBB Block Rate")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Requests Blocked")
     plt.yscale("linear")
+    plt.axvline(disruption_ep, color='red', linestyle='--', linewidth=1)
+    plt.text(disruption_ep+2, plt.ylim()[1]*0.9, "Network disruption", color='red', rotation=90, va='top', fontsize=8)
     plt.legend()
     plt.tight_layout()
     plt.savefig('eMBB_Blocks.png')
@@ -303,11 +311,13 @@ def plot_results():
     if SHOW_STD_DEV:
         plt.fill_between(range(len(random_mean)), random_mean - random_std, random_mean + random_std, color='gray', alpha=0.1)
 
-    plt.xlim(0, max_length)  # Set x-axis limit to max_length
+    plt.xlim(0, max_length)
     plt.title("eMBB SLA Satisfaction Rate")
     plt.xlabel("Number of Episodes")
     plt.ylabel("SLA Satisfaction (%)")
     plt.yscale("linear")
+    plt.axvline(disruption_ep, color='red', linestyle='--', linewidth=1)
+    plt.text(disruption_ep+2, plt.ylim()[1]*0.9, "Network disruption", color='red', rotation=90, va='top', fontsize=8)
     plt.legend()
     plt.tight_layout()
     plt.savefig('eMBB_SLA.png')

@@ -224,5 +224,5 @@ def train_dqn(episodes=EPISODES, run_id=1):
              urllc_sla=urllc_sla_pres,
              embb_sla=embb_sla_pres)
 
-for run_id in range(1, 101):
+for run_id in range(1, 2):
     train_dqn(episodes=EPISODES, run_id=run_id)

@@ -8,7 +8,7 @@ import os
 # Configuration
 # ================================
 
-NUM_RUNS = 100  # Number of runs you performed
+NUM_RUNS = 1  # Number of runs you performed
 
 RESULTS_DIR = "/home/w5/pydemo/mecon25/results"
 

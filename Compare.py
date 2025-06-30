@@ -24,6 +24,15 @@ rdqn_usage = []
 dqn_mmtc = []
 a2c_mmtc = []
 rdqn_mmtc = []
+dqn_std_metric = []
+a2c_std_metric = []
+rdqn_std_metric = []
+dqn_max_util = []
+a2c_max_util = []
+rdqn_max_util = []
+dqn_min_util = []
+a2c_min_util = []
+rdqn_min_util = []
 
 print("Checking shapes of all metrics across runs...")
 
@@ -41,6 +50,12 @@ def resize_data(data, target_length):
         return np.pad(data, (0, target_length - len(data)), mode='constant', constant_values=np.nan)
     return data
 
+def safe_load_metric(results, key, max_length):
+    if key in results:
+        return resize_data(results[key], max_length)
+    else:
+        return np.full(max_length, np.nan)
+
 for run_id in range(1, NUM_RUNS + 1):
     dqn_file = os.path.join(RESULTS_DIR, DQN_FILE_PATTERN.format(run_id))
     a2c_file = os.path.join(RESULTS_DIR, A2C_FILE_PATTERN.format(run_id))
@@ -52,15 +67,31 @@ for run_id in range(1, NUM_RUNS + 1):
         dqn_usage.append(resize_data(dqn_results['rewards'], max_length))
         a2c_usage.append(resize_data(a2c_results['rewards'], max_length))
         rdqn_usage.append(resize_data(rdqn_results['rewards'], max_length))
+        # Use safe_load_metric for new metrics
+        dqn_std_metric.append(safe_load_metric(dqn_results, 'std', max_length))
+        a2c_std_metric.append(safe_load_metric(a2c_results, 'std', max_length))
+        rdqn_std_metric.append(safe_load_metric(rdqn_results, 'std', max_length))
+        dqn_max_util.append(safe_load_metric(dqn_results, 'max_util', max_length))
+        a2c_max_util.append(safe_load_metric(a2c_results, 'max_util', max_length))
+        rdqn_max_util.append(safe_load_metric(rdqn_results, 'max_util', max_length))
+        dqn_min_util.append(safe_load_metric(dqn_results, 'min_util', max_length))
+        a2c_min_util.append(safe_load_metric(a2c_results, 'min_util', max_length))
+        rdqn_min_util.append(safe_load_metric(rdqn_results, 'min_util', max_length))
     else:
         print(f"Warning: One or more of {dqn_file}, {a2c_file}, or {rdqn_file} not found!")
 
 dqn_usage = np.array(dqn_usage)
 a2c_usage = np.array(a2c_usage)
 rdqn_usage = np.array(rdqn_usage)
-dqn_mmtc = np.array(dqn_mmtc)
-a2c_mmtc = np.array(a2c_mmtc)
-rdqn_mmtc = np.array(rdqn_mmtc)
+dqn_std_metric = np.array(dqn_std_metric)
+a2c_std_metric = np.array(a2c_std_metric)
+rdqn_std_metric = np.array(rdqn_std_metric)
+dqn_max_util = np.array(dqn_max_util)
+a2c_max_util = np.array(a2c_max_util)
+rdqn_max_util = np.array(rdqn_max_util)
+dqn_min_util = np.array(dqn_min_util)
+a2c_min_util = np.array(a2c_min_util)
+rdqn_min_util = np.array(rdqn_min_util)
 
 # Generate random baseline for load balancing metric
 random_usage = []
@@ -77,6 +108,17 @@ mean_rdqn = np.nanmean(rdqn_usage, axis=0)
 std_rdqn = np.nanstd(rdqn_usage, axis=0)
 mean_random = np.nanmean(random_usage, axis=0)
 std_random = np.nanstd(random_usage, axis=0)
+
+# Compute means for new metrics
+mean_dqn_std = np.nanmean(dqn_std_metric, axis=0)
+mean_a2c_std = np.nanmean(a2c_std_metric, axis=0)
+mean_rdqn_std = np.nanmean(rdqn_std_metric, axis=0)
+mean_dqn_max = np.nanmean(dqn_max_util, axis=0)
+mean_a2c_max = np.nanmean(a2c_max_util, axis=0)
+mean_rdqn_max = np.nanmean(rdqn_max_util, axis=0)
+mean_dqn_min = np.nanmean(dqn_min_util, axis=0)
+mean_a2c_min = np.nanmean(a2c_min_util, axis=0)
+mean_rdqn_min = np.nanmean(rdqn_min_util, axis=0)
 
 def smooth(data, window=20):
     return np.convolve(data, np.ones(window)/window, mode='valid')
@@ -110,4 +152,20 @@ def plot_results():
     plt.savefig('Load_Balance_Metric.png')
     plt.close()
 
+def plot_std_metric():
+    plt.figure(figsize=(6, 4))
+    plt.plot(smooth(mean_dqn_std), label='DQN', color='#d95f02', linewidth=2)
+    plt.plot(smooth(mean_a2c_std), label='A2C', color='#1b9e77', linewidth=2)
+    plt.plot(smooth(mean_rdqn_std), label='Rainbow', color='#7570b3', linewidth=2)
+    plt.title("Std Dev of Slice Utilization")
+    plt.xlabel("Number of Episodes")
+    plt.ylabel("Std Dev (Normalized Usage)")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('Std_Utilization.png')
+    plt.close()
+
+# Optionally, add similar plots for max/min utilization
+
 plot_results()
+plot_std_metric()

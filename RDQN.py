@@ -217,6 +217,9 @@ def train_dqn(episodes=EPISODES, run_id=1):
     urllc_sla_pres = []
     embb_sla_pres = []
     mmtc_sla_pres = []
+    std_history = []
+    max_util_history = []
+    min_util_history = []
 
     for episode in range(episodes):
         state = env.reset()
@@ -233,6 +236,8 @@ def train_dqn(episodes=EPISODES, run_id=1):
 
         beta = min(1.0, BETA_START + episode * (1.0 - BETA_START) / episodes)
 
+        episode_usages = []
+
         for t in range(STEPS_PER_EPISODE):
             traffic_type = random.choice(TRAFFIC_TYPES)
             urllc_total_requests += traffic_type == 'URLLC'
@@ -244,6 +249,10 @@ def train_dqn(episodes=EPISODES, run_id=1):
                 action = q_vals.argmax().item()
 
             next_state, reward, done, admitted, blocked, sla_violated, t_type = env.step(action, traffic_type)
+
+            # Track normalized usages for metrics
+            norm_usages = env.usages / env.slice_quotas
+            episode_usages.append(norm_usages.copy())
 
             if blocked:
                 urllc_blocks += t_type == 'URLLC'
@@ -288,6 +297,12 @@ def train_dqn(episodes=EPISODES, run_id=1):
         embb_sla_pres.append(embb_sla_preserved / embb_total_requests if embb_total_requests > 0 else 0)
         mmtc_sla_pres.append(mmtc_sla_preserved / mmtc_total_requests if mmtc_total_requests > 0 else 0)
 
+        # Compute and store std, max, min utilization for this episode
+        episode_usages = np.array(episode_usages)
+        std_history.append(np.std(episode_usages, axis=1).mean())
+        max_util_history.append(np.max(episode_usages, axis=1).mean())
+        min_util_history.append(np.min(episode_usages, axis=1).mean())
+
         if episode % TARGET_UPDATE == 0:
             target_net.load_state_dict(policy_net.state_dict())
 
@@ -301,7 +316,10 @@ def train_dqn(episodes=EPISODES, run_id=1):
              mmtc_blocks=mmtc_block_history,
              urllc_sla=urllc_sla_pres,
              embb_sla=embb_sla_pres,
-             mmtc_sla=mmtc_sla_pres)
+             mmtc_sla=mmtc_sla_pres,
+             std=std_history,
+             max_util=max_util_history,
+             min_util=min_util_history)
 
-for run_id in range(1, 6):
+for run_id in range(1, 2):
     train_dqn(episodes=EPISODES, run_id=run_id)

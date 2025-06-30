@@ -104,7 +104,7 @@ class Critic(nn.Module):
 # Results Saving Function
 # ================================
 
-def save_results(run_id, rewards, urllc_blocks, embb_blocks, mmtc_blocks, urllc_sla, embb_sla, mmtc_sla):
+def save_results(run_id, rewards, urllc_blocks, embb_blocks, mmtc_blocks, urllc_sla, embb_sla, mmtc_sla, stds, max_utils, min_utils):
     # Ensure the results folder exists
     results_dir = "results"
     os.makedirs(results_dir, exist_ok=True)
@@ -117,7 +117,10 @@ def save_results(run_id, rewards, urllc_blocks, embb_blocks, mmtc_blocks, urllc_
              mmtc_blocks=mmtc_blocks,
              urllc_sla=urllc_sla, 
              embb_sla=embb_sla,
-             mmtc_sla=mmtc_sla)
+             mmtc_sla=mmtc_sla,
+             std=stds,
+             max_util=max_utils,
+             min_util=min_utils)
 
 # ================================
 # Training Loop
@@ -143,6 +146,9 @@ def train_a2c(episodes=EPISODES, run_id=1):
     embb_usage_hist = []
     actor_losses = []
     critic_losses = []
+    std_history = []
+    max_util_history = []
+    min_util_history = []
 
     for episode in range(episodes):
         state = env.reset()
@@ -156,6 +162,8 @@ def train_a2c(episodes=EPISODES, run_id=1):
         urllc_total_requests = 0
         embb_total_requests = 0
         mmtc_total_requests = 0
+
+        episode_usages = []
 
         for t in range(STEPS_PER_EPISODE):
             traffic_type = random.choice(TRAFFIC_TYPES)
@@ -171,6 +179,10 @@ def train_a2c(episodes=EPISODES, run_id=1):
             action = np.random.choice(action_size, p=action_probs.detach().numpy().squeeze())
 
             next_state, reward, done, admitted, blocked, sla_violated, t_type = env.step(action, traffic_type)
+
+            # Track normalized usages for metrics
+            norm_usages = env.usages / env.slice_quotas
+            episode_usages.append(norm_usages.copy())
 
             if blocked:
                 if t_type == 'URLLC': urllc_blocks += 1
@@ -208,10 +220,16 @@ def train_a2c(episodes=EPISODES, run_id=1):
         urllc_usage_hist.append(env.usages[0])
         embb_usage_hist.append(env.usages[1])
 
+        # Compute and store std, max, min utilization for this episode
+        episode_usages = np.array(episode_usages)
+        std_history.append(np.std(episode_usages, axis=1).mean())
+        max_util_history.append(np.max(episode_usages, axis=1).mean())
+        min_util_history.append(np.min(episode_usages, axis=1).mean())
+
         print(f"Episode {episode+1}/{episodes} - Episode Return: {episode_return}")
 
     # Save results for the current run with a unique ID
-    save_results(run_id, reward_history, urllc_block_history, embb_block_history, mmtc_block_history, urllc_sla_pres, embb_sla_pres, mmtc_sla_pres)
+    save_results(run_id, reward_history, urllc_block_history, embb_block_history, mmtc_block_history, urllc_sla_pres, embb_sla_pres, mmtc_sla_pres, std_history, max_util_history, min_util_history)
 
     # Plot losses
   #  plt.figure(figsize=(10, 5))
@@ -231,5 +249,5 @@ def train_a2c(episodes=EPISODES, run_id=1):
 # Run Multiple A2C Simulations
 # ================================
 
-for run_id in range(1, 6):  # Run 5 simulations with different IDs
+for run_id in range(1, 2):  # Run 5 simulations with different IDs
     train_a2c(episodes=EPISODES, run_id=run_id)

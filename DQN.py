@@ -34,6 +34,13 @@ EPSILON_END = 0.05
 EPSILON_DECAY = 100
 
 # ================================
+# Disruption Configuration
+# ================================
+DISRUPTION_START_EPISODE = 100
+DISRUPTION_DURATION = 40
+DISRUPTED_PRBS = 1  # Make disruption extremely severe
+
+# ================================
 # Environment
 # ================================
 
@@ -41,11 +48,12 @@ class RANEnv:
     def __init__(self):
         self.slice_quotas = np.array([URLLC_QUOTA, EMBB_QUOTA, MMTC_QUOTA])
         self.util_threshold = 0.9  # Utilization threshold for positive reward
+        self.normal_total_prbs = TOTAL_PRBS
         self.reset()
 
     def reset(self):
         self.usages = np.zeros(3, dtype=np.float32)  # [urllc, embb, mmtc]
-        self.total_prbs = TOTAL_PRBS
+        self.total_prbs = self.normal_total_prbs
         return self._get_state()
 
     def _get_state(self):
@@ -54,7 +62,16 @@ class RANEnv:
         remaining = (self.total_prbs - self.usages.sum()) / TOTAL_PRBS
         return np.concatenate([norm_usages, [remaining]]).astype(np.float32)
 
-    def step(self, action, traffic_type):
+    def step(self, action, traffic_type, episode=None, step_num=None):
+        # Apply disruption if within the disruption window
+        if episode is not None and DISRUPTION_START_EPISODE <= episode < DISRUPTION_START_EPISODE + DISRUPTION_DURATION:
+            self.total_prbs = DISRUPTED_PRBS
+            # Debug print to confirm disruption is active
+            if step_num == 0:
+                print(f"*** DISRUPTION ACTIVE (Episode {episode}) - total_prbs={self.total_prbs} ***")
+        else:
+            self.total_prbs = self.normal_total_prbs
+
         done = False
         admitted = False
         blocked = False
@@ -81,13 +98,17 @@ class RANEnv:
         norm_usages = self.usages / self.slice_quotas
         reward = -np.std(norm_usages)  # Encourage balance
 
+        # Encourage admitting requests
+        if admitted:
+            reward += 0.5  # Increased positive reward for admitting
+
         # Positive reward if all slices are below threshold
         if np.all(norm_usages < self.util_threshold):
             reward += 0.2
 
-        # Penalty for SLA violation or overloaded slice
+        # Reduced penalty for SLA violation or overloaded slice
         if sla_violated or np.any(norm_usages > 1.0):
-            reward -= 0.3
+            reward -= 0.1  # Reduced penalty
 
         next_state = self._get_state()
         return next_state, reward, done, admitted, blocked, sla_violated, traffic_type
@@ -184,7 +205,9 @@ def train_dqn(episodes=EPISODES, run_id=1):
                     q_vals = policy_net(torch.tensor(state).float().unsqueeze(0))
                     action = q_vals.argmax().item()
 
-            next_state, reward, done, admitted, blocked, sla_violated, t_type = env.step(action, traffic_type)
+            next_state, reward, done, admitted, blocked, sla_violated, t_type = env.step(
+                action, traffic_type, episode=episode, step_num=t
+            )
 
             # Track normalized usages for metrics
             norm_usages = env.usages / env.slice_quotas

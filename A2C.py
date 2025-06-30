@@ -35,29 +35,24 @@ STEPS_PER_EPISODE = 50
 
 class RANEnv:
     def __init__(self):
+        self.slice_quotas = np.array([URLLC_QUOTA, EMBB_QUOTA, MMTC_QUOTA])
         self.reset()
 
     def reset(self):
-        self.urllc_usage = 0
-        self.embb_usage = 0
-        self.mmtc_usage = 0
+        self.usages = np.zeros(3, dtype=np.float32)  # [urllc, embb, mmtc]
         self.total_prbs = TOTAL_PRBS
-        self.state = self._get_state()
-        return self.state
+        return self._get_state()
 
     def _get_state(self):
-        return np.array([
-            self.urllc_usage / TOTAL_PRBS,
-            self.embb_usage / TOTAL_PRBS,
-            self.mmtc_usage / TOTAL_PRBS,
-            1.0
-        ], dtype=np.float32)
+        norm_usages = self.usages / self.slice_quotas
+        remaining = (self.total_prbs - self.usages.sum()) / TOTAL_PRBS
+        return np.concatenate([norm_usages, [remaining]]).astype(np.float32)
 
     def step(self, action, traffic_type):
         done = False
         admitted = False
         blocked = False
-
+        slice_idx = TRAFFIC_TYPES.index(traffic_type)
         if traffic_type == 'URLLC':
             request_prbs = np.random.randint(1, 5)
         elif traffic_type == 'eMBB':
@@ -66,36 +61,15 @@ class RANEnv:
             request_prbs = np.random.randint(1, 3)
 
         if action == 1:
-            if traffic_type == 'URLLC':
-                if self.urllc_usage + request_prbs <= URLLC_QUOTA:
-                    self.urllc_usage += request_prbs
-                    admitted = True
-                else:
-                    blocked = True
-            elif traffic_type == 'eMBB':
-                if self.embb_usage + request_prbs <= EMBB_QUOTA:
-                    self.embb_usage += request_prbs
-                    admitted = True
-                elif self.urllc_usage + self.embb_usage + self.mmtc_usage + request_prbs <= TOTAL_PRBS:
-                    self.embb_usage += request_prbs
-                    admitted = True
-                else:
-                    blocked = True
-            elif traffic_type == 'mMTC':
-                if self.mmtc_usage + request_prbs <= MMTC_QUOTA:
-                    self.mmtc_usage += request_prbs
-                    admitted = True
-                elif self.urllc_usage + self.embb_usage + self.mmtc_usage + request_prbs <= TOTAL_PRBS:
-                    self.mmtc_usage += request_prbs
-                    admitted = True
-                else:
-                    blocked = True
-        # Reward: negative absolute difference between normalized usages (maximize balance)
-        usage_diff = abs((self.urllc_usage / URLLC_QUOTA) - (self.embb_usage / EMBB_QUOTA)) \
-                   + abs((self.urllc_usage / URLLC_QUOTA) - (self.mmtc_usage / MMTC_QUOTA)) \
-                   + abs((self.embb_usage / EMBB_QUOTA) - (self.mmtc_usage / MMTC_QUOTA))
-        reward = -usage_diff
-        # Small penalty for blocking
+            if self.usages[slice_idx] + request_prbs <= self.slice_quotas[slice_idx] \
+               and self.usages.sum() + request_prbs <= self.total_prbs:
+                self.usages[slice_idx] += request_prbs
+                admitted = True
+            else:
+                blocked = True
+
+        norm_usages = self.usages / self.slice_quotas
+        reward = -np.std(norm_usages)
         if blocked:
             reward -= 0.2
 
@@ -231,8 +205,8 @@ def train_a2c(episodes=EPISODES, run_id=1):
         urllc_sla_pres.append(urllc_sla_preserved / urllc_total_requests if urllc_total_requests > 0 else 0)
         embb_sla_pres.append(embb_sla_preserved / embb_total_requests if embb_total_requests > 0 else 0)
         mmtc_sla_pres.append(mmtc_sla_preserved / mmtc_total_requests if mmtc_total_requests > 0 else 0)
-        urllc_usage_hist.append(env.urllc_usage)
-        embb_usage_hist.append(env.embb_usage)
+        urllc_usage_hist.append(env.usages[0])
+        embb_usage_hist.append(env.usages[1])
 
         print(f"Episode {episode+1}/{episodes} - Episode Return: {episode_return}")
 

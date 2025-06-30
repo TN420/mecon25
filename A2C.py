@@ -88,18 +88,18 @@ class RANEnv:
                 sla_violated = True
 
         norm_usages = self.usages / self.slice_quotas
-        reward = -np.std(norm_usages)
 
-        # Encourage admitting requests
+        # --- Modified reward function ---
+        reward = 0.0
         if admitted:
-            reward += 0.5  # Increased positive reward for admitting
-
+            reward += 1.0  # Strong reward for admitting
+        if blocked:
+            reward -= 0.5  # Penalty for blocking
+        reward -= 0.1 * np.std(norm_usages)  # Smaller penalty for imbalance
         if np.all(norm_usages < self.util_threshold):
-            reward += 0.2
-
-        # Reduced penalty for SLA violation or overloaded slice
+            reward += 0.1  # Small bonus for keeping all slices under threshold
         if sla_violated or np.any(norm_usages > 1.0):
-            reward -= 0.1  # Reduced penalty
+            reward -= 0.1  # Penalty for SLA violation/overload
 
         next_state = self._get_state()
         return next_state, reward, done, admitted, blocked, sla_violated, traffic_type

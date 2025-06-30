@@ -121,21 +121,12 @@ dqn_mmtc_blocks = np.array(dqn_mmtc_blocks)
 a2c_mmtc_blocks = np.array(a2c_mmtc_blocks)
 rdqn_mmtc_blocks = np.array(rdqn_mmtc_blocks)
 
-# Generate random baseline for load balancing metric
-random_usage = []
-for _ in range(NUM_RUNS):
-    random_metric = np.random.uniform(-1, 0, size=max_length)
-    random_usage.append(random_metric)
-random_usage = np.array(random_usage)
-
 mean_dqn = np.nanmean(dqn_usage, axis=0)
 std_dqn = np.nanstd(dqn_usage, axis=0)
 mean_a2c = np.nanmean(a2c_usage, axis=0)
 std_a2c = np.nanstd(a2c_usage, axis=0)
 mean_rdqn = np.nanmean(rdqn_usage, axis=0)
 std_rdqn = np.nanstd(rdqn_usage, axis=0)
-mean_random = np.nanmean(random_usage, axis=0)
-std_random = np.nanstd(random_usage, axis=0)
 
 # Compute means for new metrics
 mean_dqn_std = np.nanmean(dqn_std_metric, axis=0)
@@ -168,17 +159,100 @@ def adjust_std_and_smooth(mean_data, std_data):
 
 SHOW_STD_DEV = False
 
+# --- Baseline (non-RL) load balancing simulation ---
+def simulate_baseline(num_episodes, steps_per_episode=50):
+    TOTAL_PRBS = 100
+    SLICE_QUOTAS = np.array([30, 60, 10])
+    TRAFFIC_TYPES = ['URLLC', 'eMBB', 'mMTC']
+    util_threshold = 0.9
+
+    rewards = []
+    std_metric = []
+    max_util = []
+    min_util = []
+    urllc_blocks = []
+    embb_blocks = []
+    mmtc_blocks = []
+
+    for ep in range(num_episodes):
+        usages = np.zeros(3, dtype=np.float32)
+        episode_reward = 0
+        episode_usages = []
+        urllc_blk = 0
+        embb_blk = 0
+        mmtc_blk = 0
+
+        for t in range(steps_per_episode):
+            traffic_type = np.random.choice(TRAFFIC_TYPES)
+            slice_idx = TRAFFIC_TYPES.index(traffic_type)
+            if traffic_type == 'URLLC':
+                request_prbs = np.random.randint(1, 5)
+            elif traffic_type == 'eMBB':
+                request_prbs = np.random.randint(5, 50)
+            else:
+                request_prbs = np.random.randint(1, 3)
+
+            # Baseline: admit if possible, else block
+            if usages[slice_idx] + request_prbs <= SLICE_QUOTAS[slice_idx] and usages.sum() + request_prbs <= TOTAL_PRBS:
+                usages[slice_idx] += request_prbs
+                admitted = True
+                blocked = False
+            else:
+                admitted = False
+                blocked = True
+
+            norm_usages = usages / SLICE_QUOTAS
+            episode_usages.append(norm_usages.copy())
+
+            # More realistic baseline reward:
+            reward = 1.0 if admitted else -1.0
+            reward -= 0.05 * np.std(norm_usages)  # small penalty for imbalance
+
+            episode_reward += reward
+
+            if blocked:
+                if traffic_type == 'URLLC':
+                    urllc_blk += 1
+                elif traffic_type == 'eMBB':
+                    embb_blk += 1
+                else:
+                    mmtc_blk += 1
+
+        rewards.append(episode_reward)
+        episode_usages = np.array(episode_usages)
+        std_metric.append(np.std(episode_usages, axis=1).mean())
+        max_util.append(np.max(episode_usages, axis=1).mean())
+        min_util.append(np.min(episode_usages, axis=1).mean())
+        urllc_blocks.append(urllc_blk)
+        embb_blocks.append(embb_blk)
+        mmtc_blocks.append(mmtc_blk)
+
+    return (
+        np.array(rewards),
+        np.array(std_metric),
+        np.array(max_util),
+        np.array(min_util),
+        np.array(urllc_blocks),
+        np.array(embb_blocks),
+        np.array(mmtc_blocks),
+    )
+
+# --- Simulate baseline for plotting ---
+baseline_rewards, baseline_std, baseline_max, baseline_min, baseline_urllc_blocks, baseline_embb_blocks, baseline_mmtc_blocks = simulate_baseline(max_length)
+
 def plot_results():
     plt.figure(figsize=(6, 4))
     dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn, std_dqn)
     a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c, std_a2c)
     rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn, std_rdqn)
-    random_mean, random_std = adjust_std_and_smooth(mean_random, std_random)
+    # random_mean, random_std = adjust_std_and_smooth(mean_random, std_random)  # Removed
+    baseline_mean = smooth(baseline_rewards)
 
-    plt.plot(dqn_mean, label='DQN', color='#d95f02', linewidth=2, marker='o', markevery=0.1)
-    plt.plot(a2c_mean, label='A2C', color='#1b9e77', linewidth=2, marker='s', markevery=0.1)
-    plt.plot(rdqn_mean, label='Rainbow', color='#7570b3', linewidth=2, marker='^', markevery=0.1)
-    plt.plot(random_mean, label='Random', color='gray', linestyle='--', linewidth=2, marker='x', markevery=0.1)
+    plt.plot(dqn_mean, label='DQN', color='#d95f02', linewidth=2, marker='o', linestyle='-', markevery=20)
+    plt.plot(a2c_mean, label='A2C', color='#1b9e77', linewidth=2, marker='s', linestyle='-', markevery=20)
+    plt.plot(rdqn_mean, label='Rainbow', color='#7570b3', linewidth=2, marker='^', linestyle='-', markevery=20)
+    # plt.plot(random_mean, label='Random', color='gray', linewidth=2, marker='x', linestyle='-', markevery=20)  # Removed
+    plt.plot(baseline_mean, label='Baseline', color='black', linewidth=2, linestyle='--')
 
     plt.xlim(0, max_length)
     plt.title("Network Slicing Load Balancing Metric")
@@ -191,9 +265,9 @@ def plot_results():
 
 def plot_std_metric():
     plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_std), label='DQN', color='#d95f02', linewidth=2)
-    plt.plot(smooth(mean_a2c_std), label='A2C', color='#1b9e77', linewidth=2)
-    plt.plot(smooth(mean_rdqn_std), label='Rainbow', color='#7570b3', linewidth=2)
+    plt.plot(smooth(mean_dqn_std), label='DQN', color='#d95f02', linewidth=2, marker='o', linestyle='-', markevery=20)
+    plt.plot(smooth(mean_a2c_std), label='A2C', color='#1b9e77', linewidth=2, marker='s', linestyle='-', markevery=20)
+    plt.plot(smooth(mean_rdqn_std), label='Rainbow', color='#7570b3', linewidth=2, marker='^', linestyle='-', markevery=20)
     plt.title("Std Dev of Slice Utilization")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Std Dev (Normalized Usage)")
@@ -204,9 +278,10 @@ def plot_std_metric():
 
 def plot_block_rate_urllc():
     plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_urllc_blocks), label='DQN', color='#d95f02', linestyle='-')
-    plt.plot(smooth(mean_a2c_urllc_blocks), label='A2C', color='#1b9e77', linestyle='-')
-    plt.plot(smooth(mean_rdqn_urllc_blocks), label='Rainbow', color='#7570b3', linestyle='-')
+    plt.plot(smooth(mean_dqn_urllc_blocks), label='DQN', color='#d95f02', linestyle='-', marker='o', linewidth=2, markevery=20)
+    plt.plot(smooth(mean_a2c_urllc_blocks), label='A2C', color='#1b9e77', linestyle='-', marker='s', linewidth=2, markevery=20)
+    plt.plot(smooth(mean_rdqn_urllc_blocks), label='Rainbow', color='#7570b3', linestyle='-', marker='^', linewidth=2, markevery=20)
+    plt.plot(smooth(baseline_urllc_blocks), label='Baseline', color='black', linewidth=2, linestyle='--')
     plt.title("Block Rate - URLLC Slice")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Mean Block Count per Episode")
@@ -217,9 +292,10 @@ def plot_block_rate_urllc():
 
 def plot_block_rate_embb():
     plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_embb_blocks), label='DQN', color='#d95f02', linestyle='--')
-    plt.plot(smooth(mean_a2c_embb_blocks), label='A2C', color='#1b9e77', linestyle='--')
-    plt.plot(smooth(mean_rdqn_embb_blocks), label='Rainbow', color='#7570b3', linestyle='--')
+    plt.plot(smooth(mean_dqn_embb_blocks), label='DQN', color='#d95f02', linestyle='-', marker='o', linewidth=2, markevery=20)
+    plt.plot(smooth(mean_a2c_embb_blocks), label='A2C', color='#1b9e77', linestyle='-', marker='s', linewidth=2, markevery=20)
+    plt.plot(smooth(mean_rdqn_embb_blocks), label='Rainbow', color='#7570b3', linestyle='-', marker='^', linewidth=2, markevery=20)
+    plt.plot(smooth(baseline_embb_blocks), label='Baseline', color='black', linewidth=2, linestyle='--')
     plt.title("Block Rate - eMBB Slice")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Mean Block Count per Episode")
@@ -230,9 +306,10 @@ def plot_block_rate_embb():
 
 def plot_block_rate_mmtc():
     plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_mmtc_blocks), label='DQN', color='#d95f02', linestyle=':')
-    plt.plot(smooth(mean_a2c_mmtc_blocks), label='A2C', color='#1b9e77', linestyle=':')
-    plt.plot(smooth(mean_rdqn_mmtc_blocks), label='Rainbow', color='#7570b3', linestyle=':')
+    plt.plot(smooth(mean_dqn_mmtc_blocks), label='DQN', color='#d95f02', linestyle='-', marker='o', linewidth=2, markevery=20)
+    plt.plot(smooth(mean_a2c_mmtc_blocks), label='A2C', color='#1b9e77', linestyle='-', marker='s', linewidth=2, markevery=20)
+    plt.plot(smooth(mean_rdqn_mmtc_blocks), label='Rainbow', color='#7570b3', linestyle='-', marker='^', linewidth=2, markevery=20)
+    plt.plot(smooth(baseline_mmtc_blocks), label='Baseline', color='black', linewidth=2, linestyle='--')
     plt.title("Block Rate - mMTC Slice")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Mean Block Count per Episode")
@@ -247,4 +324,15 @@ plot_results()
 plot_std_metric()
 plot_block_rate_urllc()
 plot_block_rate_embb()
+plot_block_rate_mmtc()
+plot_block_rate_mmtc()
+plot_results()
+plot_std_metric()
+plot_block_rate_urllc()
+plot_block_rate_embb()
+plot_block_rate_mmtc()
+plot_block_rate_mmtc()
+plot_block_rate_urllc()
+plot_block_rate_embb()
+plot_block_rate_mmtc()
 plot_block_rate_mmtc()

@@ -40,6 +40,7 @@ EPSILON_DECAY = 100
 class RANEnv:
     def __init__(self):
         self.slice_quotas = np.array([URLLC_QUOTA, EMBB_QUOTA, MMTC_QUOTA])
+        self.util_threshold = 0.9  # Utilization threshold for positive reward
         self.reset()
 
     def reset(self):
@@ -57,6 +58,7 @@ class RANEnv:
         done = False
         admitted = False
         blocked = False
+        sla_violated = False
         slice_idx = TRAFFIC_TYPES.index(traffic_type)
         # Define PRB request ranges for each slice
         if traffic_type == 'URLLC':
@@ -74,16 +76,21 @@ class RANEnv:
                 admitted = True
             else:
                 blocked = True
+                sla_violated = True  # Blocked means SLA not met
 
-        # Reward: negative std deviation of normalized usages (encourage balance)
         norm_usages = self.usages / self.slice_quotas
-        reward = -np.std(norm_usages)
-        # Penalty for blocking
-        if blocked:
-            reward -= 0.2
+        reward = -np.std(norm_usages)  # Encourage balance
+
+        # Positive reward if all slices are below threshold
+        if np.all(norm_usages < self.util_threshold):
+            reward += 0.2
+
+        # Penalty for SLA violation or overloaded slice
+        if sla_violated or np.any(norm_usages > 1.0):
+            reward -= 0.3
 
         next_state = self._get_state()
-        return next_state, reward, done, admitted, blocked, False, traffic_type
+        return next_state, reward, done, admitted, blocked, sla_violated, traffic_type
 
 # ================================
 # DQN Network

@@ -33,6 +33,15 @@ rdqn_max_util = []
 dqn_min_util = []
 a2c_min_util = []
 rdqn_min_util = []
+dqn_urllc_blocks = []
+a2c_urllc_blocks = []
+rdqn_urllc_blocks = []
+dqn_embb_blocks = []
+a2c_embb_blocks = []
+rdqn_embb_blocks = []
+dqn_mmtc_blocks = []
+a2c_mmtc_blocks = []
+rdqn_mmtc_blocks = []
 
 print("Checking shapes of all metrics across runs...")
 
@@ -77,6 +86,16 @@ for run_id in range(1, NUM_RUNS + 1):
         dqn_min_util.append(safe_load_metric(dqn_results, 'min_util', max_length))
         a2c_min_util.append(safe_load_metric(a2c_results, 'min_util', max_length))
         rdqn_min_util.append(safe_load_metric(rdqn_results, 'min_util', max_length))
+        # Block histories
+        dqn_urllc_blocks.append(safe_load_metric(dqn_results, 'urllc_blocks', max_length))
+        a2c_urllc_blocks.append(safe_load_metric(a2c_results, 'urllc_blocks', max_length))
+        rdqn_urllc_blocks.append(safe_load_metric(rdqn_results, 'urllc_blocks', max_length))
+        dqn_embb_blocks.append(safe_load_metric(dqn_results, 'embb_blocks', max_length))
+        a2c_embb_blocks.append(safe_load_metric(a2c_results, 'embb_blocks', max_length))
+        rdqn_embb_blocks.append(safe_load_metric(rdqn_results, 'embb_blocks', max_length))
+        dqn_mmtc_blocks.append(safe_load_metric(dqn_results, 'mmtc_blocks', max_length))
+        a2c_mmtc_blocks.append(safe_load_metric(a2c_results, 'mmtc_blocks', max_length))
+        rdqn_mmtc_blocks.append(safe_load_metric(rdqn_results, 'mmtc_blocks', max_length))
     else:
         print(f"Warning: One or more of {dqn_file}, {a2c_file}, or {rdqn_file} not found!")
 
@@ -92,6 +111,15 @@ rdqn_max_util = np.array(rdqn_max_util)
 dqn_min_util = np.array(dqn_min_util)
 a2c_min_util = np.array(a2c_min_util)
 rdqn_min_util = np.array(rdqn_min_util)
+dqn_urllc_blocks = np.array(dqn_urllc_blocks)
+a2c_urllc_blocks = np.array(a2c_urllc_blocks)
+rdqn_urllc_blocks = np.array(rdqn_urllc_blocks)
+dqn_embb_blocks = np.array(dqn_embb_blocks)
+a2c_embb_blocks = np.array(a2c_embb_blocks)
+rdqn_embb_blocks = np.array(rdqn_embb_blocks)
+dqn_mmtc_blocks = np.array(dqn_mmtc_blocks)
+a2c_mmtc_blocks = np.array(a2c_mmtc_blocks)
+rdqn_mmtc_blocks = np.array(rdqn_mmtc_blocks)
 
 # Generate random baseline for load balancing metric
 random_usage = []
@@ -119,6 +147,15 @@ mean_rdqn_max = np.nanmean(rdqn_max_util, axis=0)
 mean_dqn_min = np.nanmean(dqn_min_util, axis=0)
 mean_a2c_min = np.nanmean(a2c_min_util, axis=0)
 mean_rdqn_min = np.nanmean(rdqn_min_util, axis=0)
+mean_dqn_urllc_blocks = np.nanmean(dqn_urllc_blocks, axis=0)
+mean_a2c_urllc_blocks = np.nanmean(a2c_urllc_blocks, axis=0)
+mean_rdqn_urllc_blocks = np.nanmean(rdqn_urllc_blocks, axis=0)
+mean_dqn_embb_blocks = np.nanmean(dqn_embb_blocks, axis=0)
+mean_a2c_embb_blocks = np.nanmean(a2c_embb_blocks, axis=0)
+mean_rdqn_embb_blocks = np.nanmean(rdqn_embb_blocks, axis=0)
+mean_dqn_mmtc_blocks = np.nanmean(dqn_mmtc_blocks, axis=0)
+mean_a2c_mmtc_blocks = np.nanmean(a2c_mmtc_blocks, axis=0)
+mean_rdqn_mmtc_blocks = np.nanmean(rdqn_mmtc_blocks, axis=0)
 
 def smooth(data, window=20):
     return np.convolve(data, np.ones(window)/window, mode='valid')
@@ -165,7 +202,49 @@ def plot_std_metric():
     plt.savefig('Std_Utilization.png')
     plt.close()
 
+def plot_block_rate_urllc():
+    plt.figure(figsize=(6, 4))
+    plt.plot(smooth(mean_dqn_urllc_blocks), label='DQN', color='#d95f02', linestyle='-')
+    plt.plot(smooth(mean_a2c_urllc_blocks), label='A2C', color='#1b9e77', linestyle='-')
+    plt.plot(smooth(mean_rdqn_urllc_blocks), label='Rainbow', color='#7570b3', linestyle='-')
+    plt.title("Block Rate - URLLC Slice")
+    plt.xlabel("Number of Episodes")
+    plt.ylabel("Mean Block Count per Episode")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('Block_Rate_URRLC.png')
+    plt.close()
+
+def plot_block_rate_embb():
+    plt.figure(figsize=(6, 4))
+    plt.plot(smooth(mean_dqn_embb_blocks), label='DQN', color='#d95f02', linestyle='--')
+    plt.plot(smooth(mean_a2c_embb_blocks), label='A2C', color='#1b9e77', linestyle='--')
+    plt.plot(smooth(mean_rdqn_embb_blocks), label='Rainbow', color='#7570b3', linestyle='--')
+    plt.title("Block Rate - eMBB Slice")
+    plt.xlabel("Number of Episodes")
+    plt.ylabel("Mean Block Count per Episode")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('Block_Rate_eMBB.png')
+    plt.close()
+
+def plot_block_rate_mmtc():
+    plt.figure(figsize=(6, 4))
+    plt.plot(smooth(mean_dqn_mmtc_blocks), label='DQN', color='#d95f02', linestyle=':')
+    plt.plot(smooth(mean_a2c_mmtc_blocks), label='A2C', color='#1b9e77', linestyle=':')
+    plt.plot(smooth(mean_rdqn_mmtc_blocks), label='Rainbow', color='#7570b3', linestyle=':')
+    plt.title("Block Rate - mMTC Slice")
+    plt.xlabel("Number of Episodes")
+    plt.ylabel("Mean Block Count per Episode")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('Block_Rate_mMTC.png')
+    plt.close()
+
 # Optionally, add similar plots for max/min utilization
 
 plot_results()
 plot_std_metric()
+plot_block_rate_urllc()
+plot_block_rate_embb()
+plot_block_rate_mmtc()

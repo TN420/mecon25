@@ -36,6 +36,7 @@ STEPS_PER_EPISODE = 50
 class RANEnv:
     def __init__(self):
         self.slice_quotas = np.array([URLLC_QUOTA, EMBB_QUOTA, MMTC_QUOTA])
+        self.util_threshold = 0.9
         self.reset()
 
     def reset(self):
@@ -52,6 +53,7 @@ class RANEnv:
         done = False
         admitted = False
         blocked = False
+        sla_violated = False
         slice_idx = TRAFFIC_TYPES.index(traffic_type)
         if traffic_type == 'URLLC':
             request_prbs = np.random.randint(1, 5)
@@ -67,14 +69,19 @@ class RANEnv:
                 admitted = True
             else:
                 blocked = True
+                sla_violated = True
 
         norm_usages = self.usages / self.slice_quotas
         reward = -np.std(norm_usages)
-        if blocked:
-            reward -= 0.2
+
+        if np.all(norm_usages < self.util_threshold):
+            reward += 0.2
+
+        if sla_violated or np.any(norm_usages > 1.0):
+            reward -= 0.3
 
         next_state = self._get_state()
-        return next_state, reward, done, admitted, blocked, False, traffic_type
+        return next_state, reward, done, admitted, blocked, sla_violated, traffic_type
 
 # ================================
 # A2C Networks

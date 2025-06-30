@@ -279,5 +279,5 @@ def train_a2c(episodes=EPISODES, run_id=1):
 # Run Multiple A2C Simulations
 # ================================
 
-for run_id in range(1, 2):  # Run 5 simulations with different IDs
+for run_id in range(1, 51):  # Run 5 simulations with different IDs
     train_a2c(episodes=EPISODES, run_id=run_id)

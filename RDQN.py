@@ -351,5 +351,5 @@ def train_dqn(episodes=EPISODES, run_id=1):
              max_util=max_util_history,
              min_util=min_util_history)
 
-for run_id in range(1, 2):
+for run_id in range(1, 101):
     train_dqn(episodes=EPISODES, run_id=run_id)

@@ -27,7 +27,7 @@ LR = 0.001
 BATCH_SIZE = 16
 MEMORY_SIZE = 5000
 TARGET_UPDATE = 10
-EPISODES = 300
+EPISODES = 600
 STEPS_PER_EPISODE = 50
 ALPHA = 0.6
 BETA_START = 0.4
@@ -35,8 +35,11 @@ BETA_START = 0.4
 # ================================
 # Disruption Configuration
 # ================================
-DISRUPTION_START_EPISODE = 100
-DISRUPTION_DURATION = 40
+DISRUPTION_WINDOWS = [
+    (100, 30),
+    (300, 30),
+    (500, 30)
+]
 DISRUPTED_PRBS = 1  # Make disruption extremely severe
 
 # ================================
@@ -61,8 +64,8 @@ class RANEnv:
         return np.concatenate([norm_usages, [remaining]]).astype(np.float32)
 
     def step(self, action, traffic_type, episode=None, step_num=None):
-        # Apply disruption if within the disruption window
-        if episode is not None and DISRUPTION_START_EPISODE <= episode < DISRUPTION_START_EPISODE + DISRUPTION_DURATION:
+        # Apply disruption if within any disruption window
+        if episode is not None and any(start <= episode < start + duration for start, duration in DISRUPTION_WINDOWS):
             self.total_prbs = DISRUPTED_PRBS
             if step_num == 0:
                 print(f"*** DISRUPTION ACTIVE (Episode {episode}) - total_prbs={self.total_prbs} ***")
@@ -75,6 +78,12 @@ class RANEnv:
         blocked = False
         sla_violated = False
         slice_idx = TRAFFIC_TYPES.index(traffic_type)
+        ω_k = 1.0  # weight for slice k
+        μ = 0.01   # resource cost coefficient
+        C_t = 1.0  # cost per PRB
+        β = 0.2    # SLA violation penalty coefficient
+        λ_k = 0.5  # penalty for blocking
+
         if traffic_type == 'URLLC':
             request_prbs = np.random.randint(1, 5)
         elif traffic_type == 'eMBB':
@@ -82,28 +91,35 @@ class RANEnv:
         else:  # mMTC
             request_prbs = np.random.randint(1, 3)
 
+        R_k = 0.0
+        F_t = 0
+        prb_cost = 0.0
+
         if action == 1:
+            prb_cost = request_prbs
             if self.usages[slice_idx] + request_prbs <= self.slice_quotas[slice_idx] \
                and self.usages.sum() + request_prbs <= self.total_prbs:
                 self.usages[slice_idx] += request_prbs
                 admitted = True
+                blocked = False
+                sla_violated = False
+                R_k = 1.0
             else:
+                admitted = False
                 blocked = True
                 sla_violated = True
+                R_k = 0.0
+                F_t = 1
+        else:
+            admitted = False
+            blocked = False
+            sla_violated = False
+            R_k = 0.0
 
         norm_usages = self.usages / self.slice_quotas
 
-        # --- Modified reward function ---
-        reward = 0.0
-        if admitted:
-            reward += 1.0  # Strong reward for admitting
-        if blocked:
-            reward -= 0.5  # Penalty for blocking
-        reward -= 0.1 * np.std(norm_usages)  # Smaller penalty for imbalance
-        if np.all(norm_usages < self.util_threshold):
-            reward += 0.1  # Small bonus for keeping all slices under threshold
-        if sla_violated or np.any(norm_usages > 1.0):
-            reward -= 0.1  # Penalty for SLA violation/overload
+        # --- New reward function ---
+        reward = ω_k * R_k - λ_k * blocked - μ * C_t * prb_cost - β * F_t
 
         next_state = self._get_state()
         return next_state, reward, done, admitted, blocked, sla_violated, traffic_type
@@ -351,5 +367,5 @@ def train_dqn(episodes=EPISODES, run_id=1):
              max_util=max_util_history,
              min_util=min_util_history)
 
-for run_id in range(1, 101):
+for run_id in range(1, 11):
     train_dqn(episodes=EPISODES, run_id=run_id)

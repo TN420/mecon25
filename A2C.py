@@ -26,14 +26,17 @@ TRAFFIC_TYPES = ['URLLC', 'eMBB', 'mMTC']
 # A2C Hyperparameters
 GAMMA = 0.95
 LR = 0.001
-EPISODES = 300
+EPISODES = 600
 STEPS_PER_EPISODE = 50
 
 # ================================
 # Disruption Configuration
 # ================================
-DISRUPTION_START_EPISODE = 100
-DISRUPTION_DURATION = 40
+DISRUPTION_WINDOWS = [
+    (100, 30),
+    (300, 30),
+    (500, 30)
+]
 DISRUPTED_PRBS = 1  # Make disruption extremely severe
 
 # ================================
@@ -58,8 +61,8 @@ class RANEnv:
         return np.concatenate([norm_usages, [remaining]]).astype(np.float32)
 
     def step(self, action, traffic_type, episode=None, step_num=None):
-        # Apply disruption if within the disruption window
-        if episode is not None and DISRUPTION_START_EPISODE <= episode < DISRUPTION_START_EPISODE + DISRUPTION_DURATION:
+        # Apply disruption if within any disruption window
+        if episode is not None and any(start <= episode < start + duration for start, duration in DISRUPTION_WINDOWS):
             self.total_prbs = DISRUPTED_PRBS
             if step_num == 0:
                 print(f"*** DISRUPTION ACTIVE (Episode {episode}) - total_prbs={self.total_prbs} ***")
@@ -71,6 +74,12 @@ class RANEnv:
         blocked = False
         sla_violated = False
         slice_idx = TRAFFIC_TYPES.index(traffic_type)
+        ω_k = 1.0  # weight for slice k
+        μ = 0.01   # resource cost coefficient
+        C_t = 1.0  # cost per PRB
+        β = 0.2    # SLA violation penalty coefficient
+        λ_k = 0.5  # penalty for blocking
+
         if traffic_type == 'URLLC':
             request_prbs = np.random.randint(1, 5)
         elif traffic_type == 'eMBB':
@@ -78,28 +87,35 @@ class RANEnv:
         else:  # mMTC
             request_prbs = np.random.randint(1, 3)
 
+        R_k = 0.0
+        F_t = 0
+        prb_cost = 0.0
+
         if action == 1:
+            prb_cost = request_prbs
             if self.usages[slice_idx] + request_prbs <= self.slice_quotas[slice_idx] \
                and self.usages.sum() + request_prbs <= self.total_prbs:
                 self.usages[slice_idx] += request_prbs
                 admitted = True
+                blocked = False
+                sla_violated = False
+                R_k = 1.0
             else:
+                admitted = False
                 blocked = True
                 sla_violated = True
+                R_k = 0.0
+                F_t = 1
+        else:
+            admitted = False
+            blocked = False
+            sla_violated = False
+            R_k = 0.0
 
         norm_usages = self.usages / self.slice_quotas
 
-        # --- Modified reward function ---
-        reward = 0.0
-        if admitted:
-            reward += 1.0  # Strong reward for admitting
-        if blocked:
-            reward -= 0.5  # Penalty for blocking
-        reward -= 0.1 * np.std(norm_usages)  # Smaller penalty for imbalance
-        if np.all(norm_usages < self.util_threshold):
-            reward += 0.1  # Small bonus for keeping all slices under threshold
-        if sla_violated or np.any(norm_usages > 1.0):
-            reward -= 0.1  # Penalty for SLA violation/overload
+        # --- New reward function ---
+        reward = ω_k * R_k - λ_k * blocked - μ * C_t * prb_cost - β * F_t
 
         next_state = self._get_state()
         return next_state, reward, done, admitted, blocked, sla_violated, traffic_type
@@ -261,23 +277,9 @@ def train_a2c(episodes=EPISODES, run_id=1):
     # Save results for the current run with a unique ID
     save_results(run_id, reward_history, urllc_block_history, embb_block_history, mmtc_block_history, urllc_sla_pres, embb_sla_pres, mmtc_sla_pres, std_history, max_util_history, min_util_history)
 
-    # Plot losses
-  #  plt.figure(figsize=(10, 5))
-  #  plt.plot(actor_losses, label="Actor Loss", alpha=0.7)
-  #  plt.plot(critic_losses, label="Critic Loss", alpha=0.7)
-  #  plt.axhline(0, color='black', linewidth=0.8)
-  #  plt.title("Actor and Critic Losses Over Time")
-  #  plt.xlabel("Training Step")
-  #  plt.ylabel("Loss")
-  #  plt.legend()
-  #  plt.grid(True)
-  #  plt.tight_layout()
-  #  plt.savefig("a2c_losses_plot.png")
-  #  plt.show()
-
 # ================================
 # Run Multiple A2C Simulations
 # ================================
 
-for run_id in range(1, 51):  # Run 5 simulations with different IDs
+for run_id in range(1, 11):  # Run 10 simulations with different IDs
     train_a2c(episodes=EPISODES, run_id=run_id)

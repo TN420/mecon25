@@ -8,7 +8,7 @@ import os
 # Configuration
 # ================================
 
-NUM_RUNS = 50
+NUM_RUNS = 10
 RESULTS_DIR = "/home/w5/pydemo/mecon25/results"
 DQN_FILE_PATTERN = "dqn_results_run_{}.npz"
 A2C_FILE_PATTERN = "a2c_results_run_{}.npz"
@@ -167,8 +167,11 @@ def simulate_baseline(num_episodes, steps_per_episode=50):
     util_threshold = 0.9
 
     # --- Disruption window for baseline ---
-    DISRUPTION_START_EPISODE = 100
-    DISRUPTION_DURATION = 40
+    DISRUPTION_WINDOWS = [
+        (100, 30),
+        (300, 30),
+        (500, 30)
+    ]
     DISRUPTED_PRBS = 1
 
     rewards = []
@@ -188,7 +191,7 @@ def simulate_baseline(num_episodes, steps_per_episode=50):
         mmtc_blk = 0
 
         # --- Apply disruption to baseline ---
-        if DISRUPTION_START_EPISODE <= ep < DISRUPTION_START_EPISODE + DISRUPTION_DURATION:
+        if any(start <= ep < start + duration for start, duration in DISRUPTION_WINDOWS):
             total_prbs = DISRUPTED_PRBS
         else:
             total_prbs = TOTAL_PRBS
@@ -259,8 +262,11 @@ def simulate_baseline_sla(num_episodes, steps_per_episode=50):
     TRAFFIC_TYPES = ['URLLC', 'eMBB', 'mMTC']
     util_threshold = 0.9
 
-    DISRUPTION_START_EPISODE = 100
-    DISRUPTION_DURATION = 40
+    DISRUPTION_WINDOWS = [
+        (100, 30),
+        (300, 30),
+        (500, 30)
+    ]
     DISRUPTED_PRBS = 1
 
     urllc_sla = []
@@ -276,7 +282,7 @@ def simulate_baseline_sla(num_episodes, steps_per_episode=50):
         embb_total = 0
         mmtc_total = 0
 
-        if DISRUPTION_START_EPISODE <= ep < DISRUPTION_START_EPISODE + DISRUPTION_DURATION:
+        if any(start <= ep < start + duration for start, duration in DISRUPTION_WINDOWS):
             total_prbs = DISRUPTED_PRBS
         else:
             total_prbs = TOTAL_PRBS
@@ -371,24 +377,24 @@ def plot_results():
     baseline_mean = smooth(baseline_rewards)
 
     # --- Compute ratio metric: min_util / max_util for each method ---
-    dqn_ratio = smooth(np.nan_to_num(mean_dqn_min / mean_dqn_max, nan=0.0, posinf=0.0, neginf=0.0))
-    a2c_ratio = smooth(np.nan_to_num(mean_a2c_min / mean_a2c_max, nan=0.0, posinf=0.0, neginf=0.0))
-    rdqn_ratio = smooth(np.nan_to_num(mean_rdqn_min / mean_rdqn_max, nan=0.0, posinf=0.0, neginf=0.0))
-    baseline_ratio = smooth(np.nan_to_num(baseline_min / baseline_max, nan=0.0, posinf=0.0, neginf=0.0))
+    with np.errstate(invalid='ignore', divide='ignore'):
+        dqn_ratio = smooth(np.nan_to_num(mean_dqn_min / mean_dqn_max, nan=0.0, posinf=0.0, neginf=0.0))
+        a2c_ratio = smooth(np.nan_to_num(mean_a2c_min / mean_a2c_max, nan=0.0, posinf=0.0, neginf=0.0))
+        rdqn_ratio = smooth(np.nan_to_num(mean_rdqn_min / mean_rdqn_max, nan=0.0, posinf=0.0, neginf=0.0))
+        baseline_ratio = smooth(np.nan_to_num(baseline_min / baseline_max, nan=0.0, posinf=0.0, neginf=0.0))
 
-    plt.plot(dqn_ratio, label='DQN + LB', color='#d95f02', linewidth=2, marker='o', linestyle='-', markevery=20)
-    plt.plot(a2c_ratio, label='A2C + LB', color='#1b9e77', linewidth=2, marker='s', linestyle='-', markevery=20)
-    plt.plot(rdqn_ratio, label='Rainbow + LB', color='#7570b3', linewidth=2, marker='^', linestyle='-', markevery=20)
+    plt.plot(dqn_ratio, label='DQN + LB', color='#d95f02', linewidth=2, linestyle='-')
+    plt.plot(a2c_ratio, label='A2C + LB', color='#1b9e77', linewidth=2, linestyle='-')
+    plt.plot(rdqn_ratio, label='Rainbow + LB', color='#7570b3', linewidth=2, linestyle='-')
     plt.plot(baseline_ratio, label='LB', color='gray', linewidth=2, linestyle='--')
 
-    plt.xlim(0, 280)
+    plt.xlim(0, 600)
     plt.title("Network Slicing Load Balance Ratio (min/max)")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Min/Max Utilization Ratio")
-    # --- Mark disruption window with shaded region ---
-    disruption_start = 95
-    disruption_end = 95 + 40
-    plt.axvspan(disruption_start, disruption_end, color='red', alpha=0.2, label='Disruption Window')
+    # --- Mark disruption windows with shaded regions ---
+    for start, duration in [(95, 30), (300, 30), (500, 30)]:
+        plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
     plt.legend()
     plt.tight_layout()
     plt.savefig('Load_Balance_Metric.png')
@@ -396,17 +402,15 @@ def plot_results():
 
 def plot_std_metric():
     plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_std), label='DQN + LB', color='#d95f02', linewidth=2, marker='o', linestyle='-', markevery=20)
-    plt.plot(smooth(mean_a2c_std), label='A2C + LB', color='#1b9e77', linewidth=2, marker='s', linestyle='-', markevery=20)
-    plt.plot(smooth(mean_rdqn_std), label='Rainbow + LB', color='#7570b3', linewidth=2, marker='^', linestyle='-', markevery=20)
+    plt.plot(smooth(mean_dqn_std), label='DQN + LB', color='#d95f02', linewidth=2, linestyle='-')
+    plt.plot(smooth(mean_a2c_std), label='A2C + LB', color='#1b9e77', linewidth=2, linestyle='-')
+    plt.plot(smooth(mean_rdqn_std), label='Rainbow + LB', color='#7570b3', linewidth=2, linestyle='-')
     plt.title("Std Dev of Slice Utilization")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Std Dev (Normalized Usage)")
-    plt.xlim(0, 280)
-    # --- Mark disruption window with shaded region ---
-    disruption_start = 95
-    disruption_end = 95 + 40
-    plt.axvspan(disruption_start, disruption_end, color='red', alpha=0.2, label='Disruption Window')
+    plt.xlim(0, 600)
+    for start, duration in [(95, 30), (300, 30), (500, 30)]:
+        plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
     plt.legend()
     plt.tight_layout()
     plt.savefig('Std_Utilization.png')
@@ -414,18 +418,17 @@ def plot_std_metric():
 
 def plot_block_rate_urllc():
     plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_urllc_blocks), label='DQN + LB', color='#d95f02', linestyle='-', marker='o', linewidth=2, markevery=20)
-    plt.plot(smooth(mean_a2c_urllc_blocks), label='A2C + LB', color='#1b9e77', linestyle='-', marker='s', linewidth=2, markevery=20)
-    plt.plot(smooth(mean_rdqn_urllc_blocks), label='Rainbow + LB', color='#7570b3', linestyle='-', marker='^', linewidth=2, markevery=20)
+    plt.plot(smooth(mean_dqn_urllc_blocks), label='DQN + LB', color='#d95f02', linestyle='-', linewidth=2)
+    plt.plot(smooth(mean_a2c_urllc_blocks), label='A2C + LB', color='#1b9e77', linestyle='-', linewidth=2)
+    plt.plot(smooth(mean_rdqn_urllc_blocks), label='Rainbow + LB', color='#7570b3', linestyle='-', linewidth=2)
     plt.plot(smooth(baseline_urllc_blocks), label='LB', color='gray', linewidth=2, linestyle='--')
     plt.title("Block Rate - URLLC Slice")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Mean Block Count per Episode")
-    plt.xlim(0, 280)
-    # --- Mark disruption window with shaded region ---
-    disruption_start = 95
-    disruption_end = 95 + 40
-    plt.axvspan(disruption_start, disruption_end, color='red', alpha=0.2, label='Disruption Window')
+    plt.xlim(0, 600)
+    # --- Mark disruption windows with shaded regions ---
+    for start, duration in [(95, 30), (300, 30), (500, 30)]:
+        plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
     plt.legend()
     plt.tight_layout()
     plt.savefig('Block_Rate_URRLC.png')
@@ -433,18 +436,17 @@ def plot_block_rate_urllc():
 
 def plot_block_rate_embb():
     plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_embb_blocks), label='DQN + LB', color='#d95f02', linestyle='-', marker='o', linewidth=2, markevery=20)
-    plt.plot(smooth(mean_a2c_embb_blocks), label='A2C + LB', color='#1b9e77', linestyle='-', marker='s', linewidth=2, markevery=20)
-    plt.plot(smooth(mean_rdqn_embb_blocks), label='Rainbow + LB', color='#7570b3', linestyle='-', marker='^', linewidth=2, markevery=20)
+    plt.plot(smooth(mean_dqn_embb_blocks), label='DQN + LB', color='#d95f02', linestyle='-', linewidth=2)
+    plt.plot(smooth(mean_a2c_embb_blocks), label='A2C + LB', color='#1b9e77', linestyle='-', linewidth=2)
+    plt.plot(smooth(mean_rdqn_embb_blocks), label='Rainbow + LB', color='#7570b3', linestyle='-', linewidth=2)
     plt.plot(smooth(baseline_embb_blocks), label='LB', color='gray', linewidth=2, linestyle='--')
     plt.title("Block Rate - eMBB Slice")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Mean Block Count per Episode")
-    plt.xlim(0, 280)
-    # --- Mark disruption window with shaded region ---
-    disruption_start = 95
-    disruption_end = 95 + 40
-    plt.axvspan(disruption_start, disruption_end, color='red', alpha=0.2, label='Disruption Window')
+    plt.xlim(0, 600)
+    # --- Mark disruption windows with shaded regions ---
+    for start, duration in [(95, 30), (300, 30), (500, 30)]:
+        plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
     plt.legend(loc='upper right')
     plt.tight_layout()
     plt.savefig('Block_Rate_eMBB.png')
@@ -452,18 +454,17 @@ def plot_block_rate_embb():
 
 def plot_block_rate_mmtc():
     plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_mmtc_blocks), label='DQN + LB', color='#d95f02', linestyle='-', marker='o', linewidth=2, markevery=20)
-    plt.plot(smooth(mean_a2c_mmtc_blocks), label='A2C + LB', color='#1b9e77', linestyle='-', marker='s', linewidth=2, markevery=20)
-    plt.plot(smooth(mean_rdqn_mmtc_blocks), label='Rainbow + LB', color='#7570b3', linestyle='-', marker='^', linewidth=2, markevery=20)
+    plt.plot(smooth(mean_dqn_mmtc_blocks), label='DQN + LB', color='#d95f02', linestyle='-', linewidth=2)
+    plt.plot(smooth(mean_a2c_mmtc_blocks), label='A2C + LB', color='#1b9e77', linestyle='-', linewidth=2)
+    plt.plot(smooth(mean_rdqn_mmtc_blocks), label='Rainbow + LB', color='#7570b3', linestyle='-', linewidth=2)
     plt.plot(smooth(baseline_mmtc_blocks), label='LB', color='gray', linewidth=2, linestyle='--')
     plt.title("Block Rate - mMTC Slice")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Mean Block Count per Episode")
-    plt.xlim(0, 280)
-    # --- Mark disruption window with shaded region ---
-    disruption_start = 95
-    disruption_end = 95 + 40
-    plt.axvspan(disruption_start, disruption_end, color='red', alpha=0.2, label='Disruption Window')
+    plt.xlim(0, 600)
+    # --- Mark disruption windows with shaded regions ---
+    for start, duration in [(95, 30), (300, 30), (500, 30)]:
+        plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
     plt.legend()
     plt.tight_layout()
     plt.savefig('Block_Rate_mMTC.png')
@@ -471,17 +472,16 @@ def plot_block_rate_mmtc():
 
 def plot_sla_satisfaction_urllc():
     plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_urllc_sla), label='DQN + LB', color='#d95f02', linewidth=2, marker='X', markevery=20)
-    plt.plot(smooth(mean_a2c_urllc_sla), label='A2C + LB', color='#1b9e77', linewidth=2, marker='X', markevery=20)
-    plt.plot(smooth(mean_rdqn_urllc_sla), label='Rainbow + LB', color='#7570b3', linewidth=2, marker='X', markevery=20)
-    plt.plot(smooth(baseline_urllc_sla), label='LB', color='gray', linewidth=2, marker='X', markevery=20)
+    plt.plot(smooth(mean_dqn_urllc_sla), label='DQN + LB', color='#d95f02', linewidth=2, linestyle='-')
+    plt.plot(smooth(mean_a2c_urllc_sla), label='A2C + LB', color='#1b9e77', linewidth=2, linestyle='-')
+    plt.plot(smooth(mean_rdqn_urllc_sla), label='Rainbow + LB', color='#7570b3', linewidth=2, linestyle='-')
+    plt.plot(smooth(baseline_urllc_sla), label='LB', color='gray', linewidth=2, linestyle='--')
     plt.title("SLA Satisfaction - URLLC")
     plt.xlabel("Number of Episodes")
     plt.ylabel("SLA Satisfaction Ratio")
-    plt.xlim(0, 280)
-    disruption_start = 95
-    disruption_end = 95 + 40
-    plt.axvspan(disruption_start, disruption_end, color='red', alpha=0.2, label='Disruption Window')
+    plt.xlim(0, 600)
+    for start, duration in [(95, 30), (300, 30), (500, 30)]:
+        plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
     plt.legend(loc='lower left', fontsize=8)
     plt.tight_layout()
     plt.savefig('SLA_Satisfaction_URLLC.png')
@@ -489,17 +489,16 @@ def plot_sla_satisfaction_urllc():
 
 def plot_sla_satisfaction_embb():
     plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_embb_sla), label='DQN + LB', color='#d95f02', linewidth=2, marker='o', markevery=20)
-    plt.plot(smooth(mean_a2c_embb_sla), label='A2C + LB', color='#1b9e77', linewidth=2, marker='o', markevery=20)
-    plt.plot(smooth(mean_rdqn_embb_sla), label='Rainbow + LB', color='#7570b3', linewidth=2, marker='o', markevery=20)
-    plt.plot(smooth(baseline_embb_sla), label='LB', color='gray', linewidth=2, marker='o', markevery=20)
+    plt.plot(smooth(mean_dqn_embb_sla), label='DQN + LB', color='#d95f02', linewidth=2, linestyle='-')
+    plt.plot(smooth(mean_a2c_embb_sla), label='A2C + LB', color='#1b9e77', linewidth=2, linestyle='-')
+    plt.plot(smooth(mean_rdqn_embb_sla), label='Rainbow + LB', color='#7570b3', linewidth=2, linestyle='-')
+    plt.plot(smooth(baseline_embb_sla), label='LB', color='gray', linewidth=2, linestyle='--')
     plt.title("SLA Satisfaction - eMBB")
     plt.xlabel("Number of Episodes")
     plt.ylabel("SLA Satisfaction Ratio")
-    plt.xlim(0, 280)
-    disruption_start = 95
-    disruption_end = 95 + 40
-    plt.axvspan(disruption_start, disruption_end, color='red', alpha=0.2, label='Disruption Window')
+    plt.xlim(0, 600)
+    for start, duration in [(95, 30), (300, 30), (500, 30)]:
+        plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
     plt.legend(loc='lower left', fontsize=8)
     plt.tight_layout()
     plt.savefig('SLA_Satisfaction_eMBB.png')
@@ -507,291 +506,16 @@ def plot_sla_satisfaction_embb():
 
 def plot_sla_satisfaction_mmtc():
     plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_mmtc_sla), label='DQN + LB', color='#d95f02', linewidth=2, marker='^', markevery=20)
-    plt.plot(smooth(mean_a2c_mmtc_sla), label='A2C + LB', color='#1b9e77', linewidth=2, marker='^', markevery=20)
-    plt.plot(smooth(mean_rdqn_mmtc_sla), label='Rainbow + LB', color='#7570b3', linewidth=2, marker='^', markevery=20)
-    plt.plot(smooth(baseline_mmtc_sla), label='LB', color='gray', linewidth=2, marker='^', markevery=20)
+    plt.plot(smooth(mean_dqn_mmtc_sla), label='DQN + LB', color='#d95f02', linewidth=2, linestyle='-')
+    plt.plot(smooth(mean_a2c_mmtc_sla), label='A2C + LB', color='#1b9e77', linewidth=2, linestyle='-')
+    plt.plot(smooth(mean_rdqn_mmtc_sla), label='Rainbow + LB', color='#7570b3', linewidth=2, linestyle='-')
+    plt.plot(smooth(baseline_mmtc_sla), label='LB', color='gray', linewidth=2, linestyle='--')
     plt.title("SLA Satisfaction - mMTC")
     plt.xlabel("Number of Episodes")
     plt.ylabel("SLA Satisfaction Ratio")
-    plt.xlim(0, 280)
-    disruption_start = 95
-    disruption_end = 95 + 40
-    plt.axvspan(disruption_start, disruption_end, color='red', alpha=0.2, label='Disruption Window')
-    plt.legend(loc='lower left', fontsize=8)
-    plt.tight_layout()
-    plt.savefig('SLA_Satisfaction_mMTC.png')
-    plt.close()
-
-# --- Simulate baseline for plotting ---
-baseline_rewards, baseline_std, baseline_max, baseline_min, baseline_urllc_blocks, baseline_embb_blocks, baseline_mmtc_blocks = simulate_baseline(max_length)
-
-# --- Simulate baseline SLA satisfaction ---
-def simulate_baseline_sla(num_episodes, steps_per_episode=50):
-    TOTAL_PRBS = 100
-    SLICE_QUOTAS = np.array([30, 60, 10])
-    TRAFFIC_TYPES = ['URLLC', 'eMBB', 'mMTC']
-    util_threshold = 0.9
-
-    DISRUPTION_START_EPISODE = 100
-    DISRUPTION_DURATION = 40
-    DISRUPTED_PRBS = 1
-
-    urllc_sla = []
-    embb_sla = []
-    mmtc_sla = []
-
-    for ep in range(num_episodes):
-        usages = np.zeros(3, dtype=np.float32)
-        urllc_preserved = 0
-        embb_preserved = 0
-        mmtc_preserved = 0
-        urllc_total = 0
-        embb_total = 0
-        mmtc_total = 0
-
-        if DISRUPTION_START_EPISODE <= ep < DISRUPTION_START_EPISODE + DISRUPTION_DURATION:
-            total_prbs = DISRUPTED_PRBS
-        else:
-            total_prbs = TOTAL_PRBS
-
-        for t in range(steps_per_episode):
-            traffic_type = np.random.choice(TRAFFIC_TYPES)
-            slice_idx = TRAFFIC_TYPES.index(traffic_type)
-            if traffic_type == 'URLLC':
-                request_prbs = np.random.randint(1, 5)
-                urllc_total += 1
-            elif traffic_type == 'eMBB':
-                request_prbs = np.random.randint(5, 50)
-                embb_total += 1
-            else:
-                request_prbs = np.random.randint(1, 3)
-                mmtc_total += 1
-
-            if usages.sum() + request_prbs <= total_prbs:
-                usages[slice_idx] += request_prbs
-                # SLA preserved if admitted and not overloaded
-                norm_usages = usages / SLICE_QUOTAS
-                if np.all(norm_usages < util_threshold):
-                    if traffic_type == 'URLLC':
-                        urllc_preserved += 1
-                    elif traffic_type == 'eMBB':
-                        embb_preserved += 1
-                    else:
-                        mmtc_preserved += 1
-
-        urllc_sla.append(urllc_preserved / urllc_total if urllc_total > 0 else 0)
-        embb_sla.append(embb_preserved / embb_total if embb_total > 0 else 0)
-        mmtc_sla.append(mmtc_preserved / mmtc_total if mmtc_total > 0 else 0)
-
-    return np.array(urllc_sla), np.array(embb_sla), np.array(mmtc_sla)
-
-baseline_urllc_sla, baseline_embb_sla, baseline_mmtc_sla = simulate_baseline_sla(max_length)
-
-# --- Load RL SLA metrics ---
-dqn_urllc_sla = []
-a2c_urllc_sla = []
-rdqn_urllc_sla = []
-dqn_embb_sla = []
-a2c_embb_sla = []
-rdqn_embb_sla = []
-dqn_mmtc_sla = []
-a2c_mmtc_sla = []
-rdqn_mmtc_sla = []
-
-for run_id in range(1, NUM_RUNS + 1):
-    dqn_file = os.path.join(RESULTS_DIR, DQN_FILE_PATTERN.format(run_id))
-    a2c_file = os.path.join(RESULTS_DIR, A2C_FILE_PATTERN.format(run_id))
-    rdqn_file = os.path.join(RESULTS_DIR, RDQN_FILE_PATTERN.format(run_id))
-    if os.path.exists(dqn_file) and os.path.exists(a2c_file) and os.path.exists(rdqn_file):
-        dqn_results = np.load(dqn_file)
-        a2c_results = np.load(a2c_file)
-        rdqn_results = np.load(rdqn_file)
-        dqn_urllc_sla.append(resize_data(dqn_results['urllc_sla'], max_length))
-        a2c_urllc_sla.append(resize_data(a2c_results['urllc_sla'], max_length))
-        rdqn_urllc_sla.append(resize_data(rdqn_results['urllc_sla'], max_length))
-        dqn_embb_sla.append(resize_data(dqn_results['embb_sla'], max_length))
-        a2c_embb_sla.append(resize_data(a2c_results['embb_sla'], max_length))
-        rdqn_embb_sla.append(resize_data(rdqn_results['embb_sla'], max_length))
-        dqn_mmtc_sla.append(resize_data(dqn_results['mmtc_sla'], max_length))
-        a2c_mmtc_sla.append(resize_data(a2c_results['mmtc_sla'], max_length))
-        rdqn_mmtc_sla.append(resize_data(rdqn_results['mmtc_sla'], max_length))
-
-dqn_urllc_sla = np.array(dqn_urllc_sla)
-a2c_urllc_sla = np.array(a2c_urllc_sla)
-rdqn_urllc_sla = np.array(rdqn_urllc_sla)
-dqn_embb_sla = np.array(dqn_embb_sla)
-a2c_embb_sla = np.array(a2c_embb_sla)
-rdqn_embb_sla = np.array(rdqn_embb_sla)
-dqn_mmtc_sla = np.array(dqn_mmtc_sla)
-a2c_mmtc_sla = np.array(a2c_mmtc_sla)
-rdqn_mmtc_sla = np.array(rdqn_mmtc_sla)
-
-mean_dqn_urllc_sla = np.nanmean(dqn_urllc_sla, axis=0)
-mean_a2c_urllc_sla = np.nanmean(a2c_urllc_sla, axis=0)
-mean_rdqn_urllc_sla = np.nanmean(rdqn_urllc_sla, axis=0)
-mean_dqn_embb_sla = np.nanmean(dqn_embb_sla, axis=0)
-mean_a2c_embb_sla = np.nanmean(a2c_embb_sla, axis=0)
-mean_rdqn_embb_sla = np.nanmean(rdqn_embb_sla, axis=0)
-mean_dqn_mmtc_sla = np.nanmean(dqn_mmtc_sla, axis=0)
-mean_a2c_mmtc_sla = np.nanmean(a2c_mmtc_sla, axis=0)
-mean_rdqn_mmtc_sla = np.nanmean(rdqn_mmtc_sla, axis=0)
-
-def plot_results():
-    plt.figure(figsize=(6, 4))
-    dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn, std_dqn)
-    a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c, std_a2c)
-    rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn, std_rdqn)
-    baseline_mean = smooth(baseline_rewards)
-
-    # --- Compute ratio metric: min_util / max_util for each method ---
-    dqn_ratio = smooth(np.nan_to_num(mean_dqn_min / mean_dqn_max, nan=0.0, posinf=0.0, neginf=0.0))
-    a2c_ratio = smooth(np.nan_to_num(mean_a2c_min / mean_a2c_max, nan=0.0, posinf=0.0, neginf=0.0))
-    rdqn_ratio = smooth(np.nan_to_num(mean_rdqn_min / mean_rdqn_max, nan=0.0, posinf=0.0, neginf=0.0))
-    baseline_ratio = smooth(np.nan_to_num(baseline_min / baseline_max, nan=0.0, posinf=0.0, neginf=0.0))
-
-    plt.plot(dqn_ratio, label='DQN + LB', color='#d95f02', linewidth=2, marker='o', linestyle='-', markevery=20)
-    plt.plot(a2c_ratio, label='A2C + LB', color='#1b9e77', linewidth=2, marker='s', linestyle='-', markevery=20)
-    plt.plot(rdqn_ratio, label='Rainbow + LB', color='#7570b3', linewidth=2, marker='^', linestyle='-', markevery=20)
-    plt.plot(baseline_ratio, label='LB', color='gray', linewidth=2, linestyle='--')
-
-    plt.xlim(0, 280)
-    plt.title("Network Slicing Load Balance Ratio (min/max)")
-    plt.xlabel("Number of Episodes")
-    plt.ylabel("Min/Max Utilization Ratio")
-    # --- Mark disruption window with shaded region ---
-    disruption_start = 95
-    disruption_end = 95 + 40
-    plt.axvspan(disruption_start, disruption_end, color='red', alpha=0.2, label='Disruption Window')
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig('Load_Balance_Metric.png')
-    plt.close()
-
-def plot_std_metric():
-    plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_std), label='DQN + LB', color='#d95f02', linewidth=2, marker='o', linestyle='-', markevery=20)
-    plt.plot(smooth(mean_a2c_std), label='A2C + LB', color='#1b9e77', linewidth=2, marker='s', linestyle='-', markevery=20)
-    plt.plot(smooth(mean_rdqn_std), label='Rainbow + LB', color='#7570b3', linewidth=2, marker='^', linestyle='-', markevery=20)
-    plt.title("Std Dev of Slice Utilization")
-    plt.xlabel("Number of Episodes")
-    plt.ylabel("Std Dev (Normalized Usage)")
-    plt.xlim(0, 280)
-    # --- Mark disruption window with shaded region ---
-    disruption_start = 95
-    disruption_end = 95 + 40
-    plt.axvspan(disruption_start, disruption_end, color='red', alpha=0.2, label='Disruption Window')
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig('Std_Utilization.png')
-    plt.close()
-
-def plot_block_rate_urllc():
-    plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_urllc_blocks), label='DQN + LB', color='#d95f02', linestyle='-', marker='o', linewidth=2, markevery=20)
-    plt.plot(smooth(mean_a2c_urllc_blocks), label='A2C + LB', color='#1b9e77', linestyle='-', marker='s', linewidth=2, markevery=20)
-    plt.plot(smooth(mean_rdqn_urllc_blocks), label='Rainbow + LB', color='#7570b3', linestyle='-', marker='^', linewidth=2, markevery=20)
-    plt.plot(smooth(baseline_urllc_blocks), label='LB', color='gray', linewidth=2, linestyle='--')
-    plt.title("Block Rate - URLLC Slice")
-    plt.xlabel("Number of Episodes")
-    plt.ylabel("Mean Block Count per Episode")
-    plt.xlim(0, 280)
-    # --- Mark disruption window with shaded region ---
-    disruption_start = 95
-    disruption_end = 95 + 40
-    plt.axvspan(disruption_start, disruption_end, color='red', alpha=0.2, label='Disruption Window')
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig('Block_Rate_URRLC.png')
-    plt.close()
-
-def plot_block_rate_embb():
-    plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_embb_blocks), label='DQN + LB', color='#d95f02', linestyle='-', marker='o', linewidth=2, markevery=20)
-    plt.plot(smooth(mean_a2c_embb_blocks), label='A2C + LB', color='#1b9e77', linestyle='-', marker='s', linewidth=2, markevery=20)
-    plt.plot(smooth(mean_rdqn_embb_blocks), label='Rainbow + LB', color='#7570b3', linestyle='-', marker='^', linewidth=2, markevery=20)
-    plt.plot(smooth(baseline_embb_blocks), label='LB', color='gray', linewidth=2, linestyle='--')
-    plt.title("Block Rate - eMBB Slice")
-    plt.xlabel("Number of Episodes")
-    plt.ylabel("Mean Block Count per Episode")
-    plt.xlim(0, 280)
-    # --- Mark disruption window with shaded region ---
-    disruption_start = 95
-    disruption_end = 95 + 40
-    plt.axvspan(disruption_start, disruption_end, color='red', alpha=0.2, label='Disruption Window')
-    plt.legend(loc='upper right')
-    plt.tight_layout()
-    plt.savefig('Block_Rate_eMBB.png')
-    plt.close()
-
-def plot_block_rate_mmtc():
-    plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_mmtc_blocks), label='DQN + LB', color='#d95f02', linestyle='-', marker='o', linewidth=2, markevery=20)
-    plt.plot(smooth(mean_a2c_mmtc_blocks), label='A2C + LB', color='#1b9e77', linestyle='-', marker='s', linewidth=2, markevery=20)
-    plt.plot(smooth(mean_rdqn_mmtc_blocks), label='Rainbow + LB', color='#7570b3', linestyle='-', marker='^', linewidth=2, markevery=20)
-    plt.plot(smooth(baseline_mmtc_blocks), label='LB', color='gray', linewidth=2, linestyle='--')
-    plt.title("Block Rate - mMTC Slice")
-    plt.xlabel("Number of Episodes")
-    plt.ylabel("Mean Block Count per Episode")
-    plt.xlim(0, 280)
-    # --- Mark disruption window with shaded region ---
-    disruption_start = 95
-    disruption_end = 95 + 40
-    plt.axvspan(disruption_start, disruption_end, color='red', alpha=0.2, label='Disruption Window')
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig('Block_Rate_mMTC.png')
-    plt.close()
-
-def plot_sla_satisfaction_urllc():
-    plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_urllc_sla), label='DQN + LB', color='#d95f02', linewidth=2, marker='X', markevery=20)
-    plt.plot(smooth(mean_a2c_urllc_sla), label='A2C + LB', color='#1b9e77', linewidth=2, marker='X', markevery=20)
-    plt.plot(smooth(mean_rdqn_urllc_sla), label='Rainbow + LB', color='#7570b3', linewidth=2, marker='X', markevery=20)
-    plt.plot(smooth(baseline_urllc_sla), label='LB', color='gray', linewidth=2, marker='X', markevery=20)
-    plt.title("SLA Satisfaction - URLLC")
-    plt.xlabel("Number of Episodes")
-    plt.ylabel("SLA Satisfaction Ratio")
-    plt.xlim(0, 280)
-    disruption_start = 95
-    disruption_end = 95 + 40
-    plt.axvspan(disruption_start, disruption_end, color='red', alpha=0.2, label='Disruption Window')
-    plt.legend(loc='lower left', fontsize=8)
-    plt.tight_layout()
-    plt.savefig('SLA_Satisfaction_URLLC.png')
-    plt.close()
-
-def plot_sla_satisfaction_embb():
-    plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_embb_sla), label='DQN + LB', color='#d95f02', linewidth=2, marker='o', markevery=20)
-    plt.plot(smooth(mean_a2c_embb_sla), label='A2C + LB', color='#1b9e77', linewidth=2, marker='o', markevery=20)
-    plt.plot(smooth(mean_rdqn_embb_sla), label='Rainbow + LB', color='#7570b3', linewidth=2, marker='o', markevery=20)
-    plt.plot(smooth(baseline_embb_sla), label='LB', color='gray', linewidth=2, marker='o', markevery=20)
-    plt.title("SLA Satisfaction - eMBB")
-    plt.xlabel("Number of Episodes")
-    plt.ylabel("SLA Satisfaction Ratio")
-    plt.xlim(0, 280)
-    disruption_start = 95
-    disruption_end = 95 + 40
-    plt.axvspan(disruption_start, disruption_end, color='red', alpha=0.2, label='Disruption Window')
-    plt.legend(loc='lower left', fontsize=8)
-    plt.tight_layout()
-    plt.savefig('SLA_Satisfaction_eMBB.png')
-    plt.close()
-
-def plot_sla_satisfaction_mmtc():
-    plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_mmtc_sla), label='DQN + LB', color='#d95f02', linewidth=2, marker='^', markevery=20)
-    plt.plot(smooth(mean_a2c_mmtc_sla), label='A2C + LB', color='#1b9e77', linewidth=2, marker='^', markevery=20)
-    plt.plot(smooth(mean_rdqn_mmtc_sla), label='Rainbow + LB', color='#7570b3', linewidth=2, marker='^', markevery=20)
-    plt.plot(smooth(baseline_mmtc_sla), label='LB', color='gray', linewidth=2, marker='^', markevery=20)
-    plt.title("SLA Satisfaction - mMTC")
-    plt.xlabel("Number of Episodes")
-    plt.ylabel("SLA Satisfaction Ratio")
-    plt.xlim(0, 280)
-    disruption_start = 95
-    disruption_end = 95 + 40
-    plt.axvspan(disruption_start, disruption_end, color='red', alpha=0.2, label='Disruption Window')
+    plt.xlim(0, 600)
+    for start, duration in [(95, 30), (300, 30), (500, 30)]:
+        plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
     plt.legend(loc='lower left', fontsize=8)
     plt.tight_layout()
     plt.savefig('SLA_Satisfaction_mMTC.png')
@@ -804,6 +528,9 @@ plot_std_metric()
 plot_block_rate_urllc()
 plot_block_rate_embb()
 plot_block_rate_mmtc()
+plot_sla_satisfaction_urllc()
+plot_sla_satisfaction_embb()
+plot_sla_satisfaction_mmtc()
 plot_sla_satisfaction_urllc()
 plot_sla_satisfaction_embb()
 plot_sla_satisfaction_mmtc()

@@ -149,7 +149,7 @@ mean_a2c_mmtc_blocks = np.nanmean(a2c_mmtc_blocks, axis=0)
 mean_rdqn_mmtc_blocks = np.nanmean(rdqn_mmtc_blocks, axis=0)
 
 def smooth(data, window=5):
-    return np.convolve(data, np.ones(window)/window, mode='valid')
+    return np.convolve(data, np.ones(window)/window, mode='same')
 
 def adjust_std_and_smooth(mean_data, std_data):
     smoothed_mean = smooth(mean_data)
@@ -374,14 +374,14 @@ def plot_results():
     dqn_mean, dqn_std = adjust_std_and_smooth(mean_dqn, std_dqn)
     a2c_mean, a2c_std = adjust_std_and_smooth(mean_a2c, std_a2c)
     rdqn_mean, rdqn_std = adjust_std_and_smooth(mean_rdqn, std_rdqn)
-    baseline_mean = smooth(baseline_rewards)
+    baseline_mean = smooth(baseline_rewards, window=5)
 
     # --- Compute ratio metric: min_util / max_util for each method ---
     with np.errstate(invalid='ignore', divide='ignore'):
-        dqn_ratio = smooth(np.nan_to_num(mean_dqn_min / mean_dqn_max, nan=0.0, posinf=0.0, neginf=0.0))
-        a2c_ratio = smooth(np.nan_to_num(mean_a2c_min / mean_a2c_max, nan=0.0, posinf=0.0, neginf=0.0))
-        rdqn_ratio = smooth(np.nan_to_num(mean_rdqn_min / mean_rdqn_max, nan=0.0, posinf=0.0, neginf=0.0))
-        baseline_ratio = smooth(np.nan_to_num(baseline_min / baseline_max, nan=0.0, posinf=0.0, neginf=0.0))
+        dqn_ratio = smooth(np.nan_to_num(mean_dqn_min / mean_dqn_max, nan=0.0, posinf=0.0, neginf=0.0), window=5)
+        a2c_ratio = smooth(np.nan_to_num(mean_a2c_min / mean_a2c_max, nan=0.0, posinf=0.0, neginf=0.0), window=5)
+        rdqn_ratio = smooth(np.nan_to_num(mean_rdqn_min / mean_rdqn_max, nan=0.0, posinf=0.0, neginf=0.0), window=5)
+        baseline_ratio = smooth(np.nan_to_num(baseline_min / baseline_max, nan=0.0, posinf=0.0, neginf=0.0), window=5)
 
     plt.plot(dqn_ratio, label='DQN + LB', color='#d95f02', linewidth=2, linestyle='-')
     plt.plot(a2c_ratio, label='A2C + LB', color='#1b9e77', linewidth=2, linestyle='-')
@@ -389,11 +389,16 @@ def plot_results():
     plt.plot(baseline_ratio, label='LB', color='gray', linewidth=2, linestyle='--')
 
     plt.xlim(0, 600)
+    plt.axvline(0, color='black', linewidth=5)
+    plt.axvline(600, color='black', linewidth=5)
+    ymin, ymax = plt.ylim()
+    plt.axhline(ymin, color='black', linewidth=5)
+    plt.axhline(ymax, color='black', linewidth=5)
     plt.title("Network Slicing Load Balance Ratio (min/max)")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Min/Max Utilization Ratio")
     # --- Mark disruption windows with shaded regions ---
-    for start, duration in [(95, 30), (300, 30), (500, 30)]:
+    for start, duration in [(95, 30), (295, 30), (495, 30)]:
         plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
     plt.legend()
     plt.tight_layout()
@@ -402,14 +407,19 @@ def plot_results():
 
 def plot_std_metric():
     plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_std), label='DQN + LB', color='#d95f02', linewidth=2, linestyle='-')
-    plt.plot(smooth(mean_a2c_std), label='A2C + LB', color='#1b9e77', linewidth=2, linestyle='-')
-    plt.plot(smooth(mean_rdqn_std), label='Rainbow + LB', color='#7570b3', linewidth=2, linestyle='-')
+    plt.plot(smooth(mean_dqn_std, window=5), label='DQN + LB', color='#d95f02', linewidth=2, linestyle='-')
+    plt.plot(smooth(mean_a2c_std, window=5), label='A2C + LB', color='#1b9e77', linewidth=2, linestyle='-')
+    plt.plot(smooth(mean_rdqn_std, window=5), label='Rainbow + LB', color='#7570b3', linewidth=2, linestyle='-')
     plt.title("Std Dev of Slice Utilization")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Std Dev (Normalized Usage)")
     plt.xlim(0, 600)
-    for start, duration in [(95, 30), (300, 30), (500, 30)]:
+    plt.axvline(0, color='black', linewidth=5)
+    plt.axvline(600, color='black', linewidth=5)
+    ymin, ymax = plt.ylim()
+    plt.axhline(ymin, color='black', linewidth=5)
+    plt.axhline(ymax, color='black', linewidth=5)
+    for start, duration in [(95, 30), (295, 30), (495, 30)]:
         plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
     plt.legend()
     plt.tight_layout()
@@ -418,16 +428,21 @@ def plot_std_metric():
 
 def plot_block_rate_urllc():
     plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_urllc_blocks), label='DQN + LB', color='#d95f02', linestyle='-', linewidth=2)
-    plt.plot(smooth(mean_a2c_urllc_blocks), label='A2C + LB', color='#1b9e77', linestyle='-', linewidth=2)
-    plt.plot(smooth(mean_rdqn_urllc_blocks), label='Rainbow + LB', color='#7570b3', linestyle='-', linewidth=2)
-    plt.plot(smooth(baseline_urllc_blocks), label='LB', color='gray', linewidth=2, linestyle='--')
+    plt.plot(smooth(mean_dqn_urllc_blocks, window=5), label='DQN + LB', color='#d95f02', linestyle='-', linewidth=2)
+    plt.plot(smooth(mean_a2c_urllc_blocks, window=5), label='A2C + LB', color='#1b9e77', linestyle='-', linewidth=2)
+    plt.plot(smooth(mean_rdqn_urllc_blocks, window=5), label='Rainbow + LB', color='#7570b3', linestyle='-', linewidth=2)
+    plt.plot(smooth(baseline_urllc_blocks, window=5), label='LB', color='gray', linewidth=2, linestyle='--')
     plt.title("Block Rate - URLLC Slice")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Mean Block Count per Episode")
     plt.xlim(0, 600)
+    plt.axvline(0, color='black', linewidth=5)
+    plt.axvline(600, color='black', linewidth=5)
+    ymin, ymax = plt.ylim()
+    plt.axhline(ymin, color='black', linewidth=5)
+    plt.axhline(ymax, color='black', linewidth=5)
     # --- Mark disruption windows with shaded regions ---
-    for start, duration in [(95, 30), (300, 30), (500, 30)]:
+    for start, duration in [(95, 30), (295, 30), (495, 30)]:
         plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
     plt.legend()
     plt.tight_layout()
@@ -436,16 +451,21 @@ def plot_block_rate_urllc():
 
 def plot_block_rate_embb():
     plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_embb_blocks), label='DQN + LB', color='#d95f02', linestyle='-', linewidth=2)
-    plt.plot(smooth(mean_a2c_embb_blocks), label='A2C + LB', color='#1b9e77', linestyle='-', linewidth=2)
-    plt.plot(smooth(mean_rdqn_embb_blocks), label='Rainbow + LB', color='#7570b3', linestyle='-', linewidth=2)
-    plt.plot(smooth(baseline_embb_blocks), label='LB', color='gray', linewidth=2, linestyle='--')
+    plt.plot(smooth(mean_dqn_embb_blocks, window=5), label='DQN + LB', color='#d95f02', linestyle='-', linewidth=2)
+    plt.plot(smooth(mean_a2c_embb_blocks, window=5), label='A2C + LB', color='#1b9e77', linestyle='-', linewidth=2)
+    plt.plot(smooth(mean_rdqn_embb_blocks, window=5), label='Rainbow + LB', color='#7570b3', linestyle='-', linewidth=2)
+    plt.plot(smooth(baseline_embb_blocks, window=5), label='LB', color='gray', linewidth=2, linestyle='--')
     plt.title("Block Rate - eMBB Slice")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Mean Block Count per Episode")
     plt.xlim(0, 600)
+    plt.axvline(0, color='black', linewidth=5)
+    plt.axvline(600, color='black', linewidth=5)
+    ymin, ymax = plt.ylim()
+    plt.axhline(ymin, color='black', linewidth=5)
+    plt.axhline(ymax, color='black', linewidth=5)
     # --- Mark disruption windows with shaded regions ---
-    for start, duration in [(95, 30), (300, 30), (500, 30)]:
+    for start, duration in [(95, 30), (295, 30), (495, 30)]:
         plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
     plt.legend(loc='upper right')
     plt.tight_layout()
@@ -454,16 +474,21 @@ def plot_block_rate_embb():
 
 def plot_block_rate_mmtc():
     plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_mmtc_blocks), label='DQN + LB', color='#d95f02', linestyle='-', linewidth=2)
-    plt.plot(smooth(mean_a2c_mmtc_blocks), label='A2C + LB', color='#1b9e77', linestyle='-', linewidth=2)
-    plt.plot(smooth(mean_rdqn_mmtc_blocks), label='Rainbow + LB', color='#7570b3', linestyle='-', linewidth=2)
-    plt.plot(smooth(baseline_mmtc_blocks), label='LB', color='gray', linewidth=2, linestyle='--')
+    plt.plot(smooth(mean_dqn_mmtc_blocks, window=5), label='DQN + LB', color='#d95f02', linestyle='-', linewidth=2)
+    plt.plot(smooth(mean_a2c_mmtc_blocks, window=5), label='A2C + LB', color='#1b9e77', linestyle='-', linewidth=2)
+    plt.plot(smooth(mean_rdqn_mmtc_blocks, window=5), label='Rainbow + LB', color='#7570b3', linestyle='-', linewidth=2)
+    plt.plot(smooth(baseline_mmtc_blocks, window=5), label='LB', color='gray', linewidth=2, linestyle='--')
     plt.title("Block Rate - mMTC Slice")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Mean Block Count per Episode")
     plt.xlim(0, 600)
+    plt.axvline(0, color='black', linewidth=5)
+    plt.axvline(600, color='black', linewidth=5)
+    ymin, ymax = plt.ylim()
+    plt.axhline(ymin, color='black', linewidth=5)
+    plt.axhline(ymax, color='black', linewidth=5)
     # --- Mark disruption windows with shaded regions ---
-    for start, duration in [(95, 30), (300, 30), (500, 30)]:
+    for start, duration in [(95, 30), (295, 30), (495, 30)]:
         plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
     plt.legend()
     plt.tight_layout()
@@ -472,15 +497,20 @@ def plot_block_rate_mmtc():
 
 def plot_sla_satisfaction_urllc():
     plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_urllc_sla), label='DQN + LB', color='#d95f02', linewidth=2, linestyle='-')
-    plt.plot(smooth(mean_a2c_urllc_sla), label='A2C + LB', color='#1b9e77', linewidth=2, linestyle='-')
-    plt.plot(smooth(mean_rdqn_urllc_sla), label='Rainbow + LB', color='#7570b3', linewidth=2, linestyle='-')
-    plt.plot(smooth(baseline_urllc_sla), label='LB', color='gray', linewidth=2, linestyle='--')
+    plt.plot(smooth(mean_dqn_urllc_sla, window=5), label='DQN + LB', color='#d95f02', linewidth=2, linestyle='-')
+    plt.plot(smooth(mean_a2c_urllc_sla, window=5), label='A2C + LB', color='#1b9e77', linewidth=2, linestyle='-')
+    plt.plot(smooth(mean_rdqn_urllc_sla, window=5), label='Rainbow + LB', color='#7570b3', linewidth=2, linestyle='-')
+    plt.plot(smooth(baseline_urllc_sla, window=5), label='LB', color='gray', linewidth=2, linestyle='--')
     plt.title("SLA Satisfaction - URLLC")
     plt.xlabel("Number of Episodes")
     plt.ylabel("SLA Satisfaction Ratio")
     plt.xlim(0, 600)
-    for start, duration in [(95, 30), (300, 30), (500, 30)]:
+    plt.axvline(0, color='black', linewidth=5)
+    plt.axvline(600, color='black', linewidth=5)
+    ymin, ymax = plt.ylim()
+    plt.axhline(ymin, color='black', linewidth=5)
+    plt.axhline(ymax, color='black', linewidth=5)
+    for start, duration in [(95, 30), (295, 30), (495, 30)]:
         plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
     plt.legend(loc='lower left', fontsize=8)
     plt.tight_layout()
@@ -489,15 +519,20 @@ def plot_sla_satisfaction_urllc():
 
 def plot_sla_satisfaction_embb():
     plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_embb_sla), label='DQN + LB', color='#d95f02', linewidth=2, linestyle='-')
-    plt.plot(smooth(mean_a2c_embb_sla), label='A2C + LB', color='#1b9e77', linewidth=2, linestyle='-')
-    plt.plot(smooth(mean_rdqn_embb_sla), label='Rainbow + LB', color='#7570b3', linewidth=2, linestyle='-')
-    plt.plot(smooth(baseline_embb_sla), label='LB', color='gray', linewidth=2, linestyle='--')
+    plt.plot(smooth(mean_dqn_embb_sla, window=5), label='DQN + LB', color='#d95f02', linewidth=2, linestyle='-')
+    plt.plot(smooth(mean_a2c_embb_sla, window=5), label='A2C + LB', color='#1b9e77', linewidth=2, linestyle='-')
+    plt.plot(smooth(mean_rdqn_embb_sla, window=5), label='Rainbow + LB', color='#7570b3', linewidth=2, linestyle='-')
+    plt.plot(smooth(baseline_embb_sla, window=5), label='LB', color='gray', linewidth=2, linestyle='--')
     plt.title("SLA Satisfaction - eMBB")
     plt.xlabel("Number of Episodes")
     plt.ylabel("SLA Satisfaction Ratio")
     plt.xlim(0, 600)
-    for start, duration in [(95, 30), (300, 30), (500, 30)]:
+    plt.axvline(0, color='black', linewidth=5)
+    plt.axvline(600, color='black', linewidth=5)
+    ymin, ymax = plt.ylim()
+    plt.axhline(ymin, color='black', linewidth=5)
+    plt.axhline(ymax, color='black', linewidth=5)
+    for start, duration in [(95, 30), (295, 30), (495, 30)]:
         plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
     plt.legend(loc='lower left', fontsize=8)
     plt.tight_layout()
@@ -506,15 +541,20 @@ def plot_sla_satisfaction_embb():
 
 def plot_sla_satisfaction_mmtc():
     plt.figure(figsize=(6, 4))
-    plt.plot(smooth(mean_dqn_mmtc_sla), label='DQN + LB', color='#d95f02', linewidth=2, linestyle='-')
-    plt.plot(smooth(mean_a2c_mmtc_sla), label='A2C + LB', color='#1b9e77', linewidth=2, linestyle='-')
-    plt.plot(smooth(mean_rdqn_mmtc_sla), label='Rainbow + LB', color='#7570b3', linewidth=2, linestyle='-')
-    plt.plot(smooth(baseline_mmtc_sla), label='LB', color='gray', linewidth=2, linestyle='--')
+    plt.plot(smooth(mean_dqn_mmtc_sla, window=5), label='DQN + LB', color='#d95f02', linewidth=2, linestyle='-')
+    plt.plot(smooth(mean_a2c_mmtc_sla, window=5), label='A2C + LB', color='#1b9e77', linewidth=2, linestyle='-')
+    plt.plot(smooth(mean_rdqn_mmtc_sla, window=5), label='Rainbow + LB', color='#7570b3', linewidth=2, linestyle='-')
+    plt.plot(smooth(baseline_mmtc_sla, window=5), label='LB', color='gray', linewidth=2, linestyle='--')
     plt.title("SLA Satisfaction - mMTC")
     plt.xlabel("Number of Episodes")
     plt.ylabel("SLA Satisfaction Ratio")
     plt.xlim(0, 600)
-    for start, duration in [(95, 30), (300, 30), (500, 30)]:
+    plt.axvline(0, color='black', linewidth=5)
+    plt.axvline(600, color='black', linewidth=5)
+    ymin, ymax = plt.ylim()
+    plt.axhline(ymin, color='black', linewidth=5)
+    plt.axhline(ymax, color='black', linewidth=5)
+    for start, duration in [(95, 30), (295, 30), (495, 30)]:
         plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
     plt.legend(loc='lower left', fontsize=8)
     plt.tight_layout()

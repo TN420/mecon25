@@ -3,6 +3,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import matplotlib.patches as mpatches
 
 # ================================
 # Configuration
@@ -148,7 +149,7 @@ mean_dqn_mmtc_blocks = np.nanmean(dqn_mmtc_blocks, axis=0)
 mean_a2c_mmtc_blocks = np.nanmean(a2c_mmtc_blocks, axis=0)
 mean_rdqn_mmtc_blocks = np.nanmean(rdqn_mmtc_blocks, axis=0)
 
-def smooth(data, window=5):
+def smooth(data, window=7):
     return np.convolve(data, np.ones(window)/window, mode='same')
 
 def adjust_std_and_smooth(mean_data, std_data):
@@ -386,7 +387,7 @@ def plot_results():
     plt.plot(dqn_ratio, label='DQN +SAC-LB', color='#d95f02', linewidth=2, linestyle='-')
     plt.plot(a2c_ratio, label='A2C +SAC-LB', color='#1b9e77', linewidth=2, linestyle='-')
     plt.plot(rdqn_ratio, label='Rainbow +SAC-LB', color='#7570b3', linewidth=2, linestyle='-')
-    plt.plot(baseline_ratio, label='LB', color='#999999', linewidth=2, linestyle='--')
+    plt.plot(baseline_ratio, label='LB', color='#b3b3b3', linewidth=2, linestyle='-')
 
     plt.xlim(0, 600)
     plt.axvline(0, color='black', linewidth=5)
@@ -404,8 +405,9 @@ def plot_results():
         label.set_fontweight('bold')
     # --- Mark disruption windows with shaded regions ---
     for start, duration in [(95, 30), (295, 30), (495, 30)]:
-        plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
-    plt.legend(loc='center right')
+        plt.axvspan(start, start + duration, color='#ff6666', alpha=0.2, label=None)
+    disruption_patch = mpatches.Patch(color='#ff6666', alpha=0.2, label='Disruption Window')
+    plt.legend(loc='upper center', handles=[disruption_patch] + plt.gca().get_legend_handles_labels()[0])
     plt.tight_layout()
     plt.savefig('Load_Balance_Metric.png')
     plt.close()
@@ -415,7 +417,7 @@ def plot_std_metric():
     plt.plot(smooth(mean_dqn_std, window=5), label='DQN +SAC-LB', color='#d95f02', linewidth=2, linestyle='-')
     plt.plot(smooth(mean_a2c_std, window=5), label='A2C +SAC-LB', color='#1b9e77', linewidth=2, linestyle='-')
     plt.plot(smooth(mean_rdqn_std, window=5), label='Rainbow +SAC-LB', color='#7570b3', linewidth=2, linestyle='-')
-    plt.plot(smooth(baseline_std, window=5), label='LB', color='#999999', linewidth=2, linestyle='--')
+    plt.plot(smooth(baseline_std, window=5), label='LB', color='#b3b3b3', linewidth=2, linestyle='-')
     plt.title("Std Dev of Slice Utilization")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Std Dev (Normalized Usage)")
@@ -431,8 +433,9 @@ def plot_std_metric():
     for label in plt.gca().get_yticklabels():
         label.set_fontweight('bold')
     for start, duration in [(95, 30), (295, 30), (495, 30)]:
-        plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
-    plt.legend(loc='center right')
+        plt.axvspan(start, start + duration, color='#ff6666', alpha=0.2, label=None)
+    disruption_patch = mpatches.Patch(color='#ff6666', alpha=0.2, label='Disruption Window')
+    plt.legend(loc='upper right', handles=[disruption_patch] + plt.gca().get_legend_handles_labels()[0])
     plt.tight_layout()
     plt.savefig('Std_Utilization.png')
     plt.close()
@@ -442,7 +445,7 @@ def plot_block_rate_urllc():
     plt.plot(smooth(mean_dqn_urllc_blocks, window=5), label='DQN +SAC-LB', color='#d95f02', linestyle='-', linewidth=2)
     plt.plot(smooth(mean_a2c_urllc_blocks, window=5), label='A2C +SAC-LB', color='#1b9e77', linestyle='-', linewidth=2)
     plt.plot(smooth(mean_rdqn_urllc_blocks, window=5), label='Rainbow +SAC-LB', color='#7570b3', linestyle='-', linewidth=2)
-    plt.plot(smooth(baseline_urllc_blocks, window=5), label='LB', color='#999999', linewidth=2, linestyle='--')
+    plt.plot(smooth(baseline_urllc_blocks, window=5), label='LB', color='#b3b3b3', linewidth=2, linestyle='-')
     plt.title("Block Rate - URLLC Slice")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Mean Block Count per Episode")
@@ -459,8 +462,9 @@ def plot_block_rate_urllc():
         label.set_fontweight('bold')
     # --- Mark disruption windows with shaded regions ---
     for start, duration in [(95, 30), (295, 30), (495, 30)]:
-        plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
-    plt.legend(loc='center right')
+        plt.axvspan(start, start + duration, color='#ff6666', alpha=0.2, label=None)
+    disruption_patch = mpatches.Patch(color='#ff6666', alpha=0.2, label='Disruption Window')
+    plt.legend(loc='center right', handles=[disruption_patch] + plt.gca().get_legend_handles_labels()[0])
     plt.tight_layout()
     plt.savefig('Block_Rate_URRLC.png')
     plt.close()
@@ -470,7 +474,7 @@ def plot_block_rate_embb():
     plt.plot(smooth(mean_dqn_embb_blocks, window=5), label='DQN +SAC-LB', color='#d95f02', linestyle='-', linewidth=2)
     plt.plot(smooth(mean_a2c_embb_blocks, window=5), label='A2C +SAC-LB', color='#1b9e77', linestyle='-', linewidth=2)
     plt.plot(smooth(mean_rdqn_embb_blocks, window=5), label='Rainbow +SAC-LB', color='#7570b3', linestyle='-', linewidth=2)
-    plt.plot(smooth(baseline_embb_blocks, window=5), label='LB', color='#999999', linewidth=2, linestyle='--')
+    plt.plot(smooth(baseline_embb_blocks, window=5), label='LB', color='#b3b3b3', linewidth=2, linestyle='-')
     plt.title("Block Rate - eMBB Slice")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Mean Block Count per Episode")
@@ -487,8 +491,9 @@ def plot_block_rate_embb():
         label.set_fontweight('bold')
     # --- Mark disruption windows with shaded regions ---
     for start, duration in [(95, 30), (295, 30), (495, 30)]:
-        plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
-    plt.legend(loc='center right')
+        plt.axvspan(start, start + duration, color='#ff6666', alpha=0.2, label=None)
+    disruption_patch = mpatches.Patch(color='#ff6666', alpha=0.2, label='Disruption Window')
+    plt.legend(loc='center right', handles=[disruption_patch] + plt.gca().get_legend_handles_labels()[0])
     plt.tight_layout()
     plt.savefig('Block_Rate_eMBB.png')
     plt.close()
@@ -498,7 +503,7 @@ def plot_block_rate_mmtc():
     plt.plot(smooth(mean_dqn_mmtc_blocks, window=5), label='DQN +SAC-LB', color='#d95f02', linestyle='-', linewidth=2)
     plt.plot(smooth(mean_a2c_mmtc_blocks, window=5), label='A2C +SAC-LB', color='#1b9e77', linestyle='-', linewidth=2)
     plt.plot(smooth(mean_rdqn_mmtc_blocks, window=5), label='Rainbow +SAC-LB', color='#7570b3', linestyle='-', linewidth=2)
-    plt.plot(smooth(baseline_mmtc_blocks, window=5), label='LB', color='#999999', linewidth=2, linestyle='--')
+    plt.plot(smooth(baseline_mmtc_blocks, window=5), label='LB', color='#b3b3b3', linewidth=2, linestyle='-')
     plt.title("Block Rate - mMTC Slice")
     plt.xlabel("Number of Episodes")
     plt.ylabel("Mean Block Count per Episode")
@@ -515,8 +520,9 @@ def plot_block_rate_mmtc():
         label.set_fontweight('bold')
     # --- Mark disruption windows with shaded regions ---
     for start, duration in [(95, 30), (295, 30), (495, 30)]:
-        plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
-    plt.legend(loc='center right')
+        plt.axvspan(start, start + duration, color='#ff6666', alpha=0.2, label=None)
+    disruption_patch = mpatches.Patch(color='#ff6666', alpha=0.2, label='Disruption Window')
+    plt.legend(loc='center right', handles=[disruption_patch] + plt.gca().get_legend_handles_labels()[0])
     plt.tight_layout()
     plt.savefig('Block_Rate_mMTC.png')
     plt.close()
@@ -526,7 +532,7 @@ def plot_sla_satisfaction_urllc():
     plt.plot(smooth(mean_dqn_urllc_sla, window=5), label='DQN +SAC-LB', color='#d95f02', linewidth=2, linestyle='-')
     plt.plot(smooth(mean_a2c_urllc_sla, window=5), label='A2C +SAC-LB', color='#1b9e77', linewidth=2, linestyle='-')
     plt.plot(smooth(mean_rdqn_urllc_sla, window=5), label='Rainbow +SAC-LB', color='#7570b3', linewidth=2, linestyle='-')
-    plt.plot(smooth(baseline_urllc_sla, window=5), label='LB', color='#999999', linewidth=2, linestyle='--')
+    plt.plot(smooth(baseline_urllc_sla, window=5), label='LB', color='#b3b3b3', linewidth=2, linestyle='-')
     plt.title("SLA Satisfaction - URLLC")
     plt.xlabel("Number of Episodes")
     plt.ylabel("SLA Satisfaction Ratio")
@@ -543,8 +549,9 @@ def plot_sla_satisfaction_urllc():
         label.set_fontweight('bold')
     # --- Mark disruption windows with shaded regions ---
     for start, duration in [(95, 30), (295, 30), (495, 30)]:
-        plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
-    plt.legend(loc='center right', fontsize=8)
+        plt.axvspan(start, start + duration, color='#ff6666', alpha=0.2, label=None)
+    disruption_patch = mpatches.Patch(color='#ff6666', alpha=0.2, label='Disruption Window')
+    plt.legend(loc='center right', fontsize=8, handles=[disruption_patch] + plt.gca().get_legend_handles_labels()[0])
     plt.tight_layout()
     plt.savefig('SLA_Satisfaction_URLLC.png')
     plt.close()
@@ -554,7 +561,7 @@ def plot_sla_satisfaction_embb():
     plt.plot(smooth(mean_dqn_embb_sla, window=5), label='DQN +SAC-LB', color='#d95f02', linewidth=2, linestyle='-')
     plt.plot(smooth(mean_a2c_embb_sla, window=5), label='A2C +SAC-LB', color='#1b9e77', linewidth=2, linestyle='-')
     plt.plot(smooth(mean_rdqn_embb_sla, window=5), label='Rainbow +SAC-LB', color='#7570b3', linewidth=2, linestyle='-')
-    plt.plot(smooth(baseline_embb_sla, window=5), label='LB', color='#999999', linewidth=2, linestyle='--')
+    plt.plot(smooth(baseline_embb_sla, window=5), label='LB', color='#b3b3b3', linewidth=2, linestyle='-')
     plt.title("SLA Satisfaction - eMBB")
     plt.xlabel("Number of Episodes")
     plt.ylabel("SLA Satisfaction Ratio")
@@ -571,8 +578,9 @@ def plot_sla_satisfaction_embb():
         label.set_fontweight('bold')
     # --- Mark disruption windows with shaded regions ---
     for start, duration in [(95, 30), (295, 30), (495, 30)]:
-        plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
-    plt.legend(loc='center right', fontsize=8)
+        plt.axvspan(start, start + duration, color='#ff6666', alpha=0.2, label=None)
+    disruption_patch = mpatches.Patch(color='#ff6666', alpha=0.2, label='Disruption Window')
+    plt.legend(loc='center right', fontsize=8, handles=[disruption_patch] + plt.gca().get_legend_handles_labels()[0])
     plt.tight_layout()
     plt.savefig('SLA_Satisfaction_eMBB.png')
     plt.close()
@@ -582,7 +590,7 @@ def plot_sla_satisfaction_mmtc():
     plt.plot(smooth(mean_dqn_mmtc_sla, window=5), label='DQN +SAC-LB', color='#d95f02', linewidth=2, linestyle='-')
     plt.plot(smooth(mean_a2c_mmtc_sla, window=5), label='A2C +SAC-LB', color='#1b9e77', linewidth=2, linestyle='-')
     plt.plot(smooth(mean_rdqn_mmtc_sla, window=5), label='Rainbow +SAC-LB', color='#7570b3', linewidth=2, linestyle='-')
-    plt.plot(smooth(baseline_mmtc_sla, window=5), label='LB', color='#999999', linewidth=2, linestyle='--')
+    plt.plot(smooth(baseline_mmtc_sla, window=5), label='LB', color='#b3b3b3', linewidth=2, linestyle='-')
     plt.title("SLA Satisfaction - mMTC")
     plt.xlabel("Number of Episodes")
     plt.ylabel("SLA Satisfaction Ratio")
@@ -599,8 +607,9 @@ def plot_sla_satisfaction_mmtc():
         label.set_fontweight('bold')
     # --- Mark disruption windows with shaded regions ---
     for start, duration in [(95, 30), (295, 30), (495, 30)]:
-        plt.axvspan(start, start + duration, color='red', alpha=0.2, label=None)
-    plt.legend(loc='center right', fontsize=8)
+        plt.axvspan(start, start + duration, color='#ff6666', alpha=0.2, label=None)
+    disruption_patch = mpatches.Patch(color='#ff6666', alpha=0.2, label='Disruption Window')
+    plt.legend(loc='center right', fontsize=8, handles=[disruption_patch] + plt.gca().get_legend_handles_labels()[0])
     plt.tight_layout()
     plt.savefig('SLA_Satisfaction_mMTC.png')
     plt.close()

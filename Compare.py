@@ -614,8 +614,6 @@ def plot_sla_satisfaction_mmtc():
     plt.savefig('SLA_Satisfaction_mMTC.png')
     plt.close()
 
-# Optionally, add similar plots for max/min utilization
-
 plot_results()
 plot_std_metric()
 plot_block_rate_urllc()
@@ -624,6 +622,42 @@ plot_block_rate_mmtc()
 plot_sla_satisfaction_urllc()
 plot_sla_satisfaction_embb()
 plot_sla_satisfaction_mmtc()
-plot_sla_satisfaction_urllc()
-plot_sla_satisfaction_embb()
-plot_sla_satisfaction_mmtc()
+
+# --- Tabulate average SLA satisfaction for the 3 models, excluding disruption windows ---
+
+# Define disruption windows as episode indices
+disruption_windows = [(95, 30), (295, 30), (495, 30)]
+disruption_mask = np.zeros(max_length, dtype=bool)
+for start, duration in disruption_windows:
+    disruption_mask[start:start+duration] = True
+non_disruption_mask = ~disruption_mask
+
+def mean_excluding_disruption(arr):
+    # arr shape: (max_length,)
+    return np.nanmean(arr[non_disruption_mask])
+
+sla_table = [
+    [
+        "DQN +SAC-LB",
+        mean_excluding_disruption(mean_dqn_urllc_sla),
+        mean_excluding_disruption(mean_dqn_embb_sla),
+        mean_excluding_disruption(mean_dqn_mmtc_sla),
+    ],
+    [
+        "A2C +SAC-LB",
+        mean_excluding_disruption(mean_a2c_urllc_sla),
+        mean_excluding_disruption(mean_a2c_embb_sla),
+        mean_excluding_disruption(mean_a2c_mmtc_sla),
+    ],
+    [
+        "Rainbow +SAC-LB",
+        mean_excluding_disruption(mean_rdqn_urllc_sla),
+        mean_excluding_disruption(mean_rdqn_embb_sla),
+        mean_excluding_disruption(mean_rdqn_mmtc_sla),
+    ],
+]
+
+print("\nAverage SLA Satisfaction (excluding disruption windows):")
+print("{:<18} {:>12} {:>12} {:>12}".format("Model", "URLLC SLA", "eMBB SLA", "mMTC SLA"))
+for row in sla_table:
+    print("{:<18} {:12.4f} {:12.4f} {:12.4f}".format(row[0], row[1], row[2], row[3]))
